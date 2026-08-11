@@ -15,6 +15,9 @@ class Doctor(models.Model):
     bio = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        ordering = ["id"]
+
     def __str__(self):
         return f"Dr. {self.user.get_full_name() or self.user.username}"
 

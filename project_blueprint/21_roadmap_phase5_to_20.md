@@ -40,6 +40,8 @@ Plus live endpoints:
 
 ## Phase 6 — Testing Expansion & Quality Assurance 🧪
 
+**Status: ✅ Implemented (2026-08-12)** — 38 → 142 tests, all passing. Found and fixed 6 real bugs along the way (see conversation/commit history): a `DoctorLeave`/`DoctorAvailability` create-ownership gap, unfiltered clinical-record queryset leaks to receptionist/lab_staff/other roles in medical_records/prescriptions/laboratory/appointments/triage, a broken doctor-review permission check on the triage `review` action, an audit-log middleware bug that failed to attribute non-JSON login attempts, and missing `ordering` on several models causing nondeterministic pagination.
+
 Abhi 38/38 tests hain. Is phase ka target sirf number barhana nahi, balkay critical workflows ko comprehensively test karna hai.
 
 **Authentication**

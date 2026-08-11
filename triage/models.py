@@ -146,6 +146,7 @@ class EmergencyGuidance(models.Model):
 
     class Meta:
         verbose_name_plural = "Emergency guidance"
+        ordering = ["urgency"]
 
     def __str__(self):
         return f"Guidance for {self.urgency}"

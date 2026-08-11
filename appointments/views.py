@@ -32,6 +32,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             qs = qs.filter(patient__user=user)
         elif user.role == User.Role.DOCTOR:
             qs = qs.filter(doctor__user=user)
+        elif not (user.is_superuser or user.role in (User.Role.ADMIN, User.Role.RECEPTIONIST)):
+            # lab_staff (or any other role) has no business case for appointment visibility.
+            return qs.none()
         # admin / receptionist / superuser: unrestricted
 
         for param, field in (("doctor", "doctor_id"), ("patient", "patient_id"), ("status", "status")):
@@ -179,6 +182,10 @@ class WaitlistViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role == User.Role.PATIENT:
             qs = qs.filter(patient__user=user)
+        elif user.role == User.Role.DOCTOR:
+            qs = qs.filter(doctor__user=user)
+        elif not (user.is_superuser or user.role in (User.Role.ADMIN, User.Role.RECEPTIONIST)):
+            return qs.none()
         doctor = self.request.query_params.get("doctor")
         if doctor:
             qs = qs.filter(doctor_id=doctor)
@@ -212,6 +219,8 @@ class FeedbackViewSet(viewsets.ModelViewSet):
             qs = qs.filter(patient__user=user)
         elif user.role == User.Role.DOCTOR:
             qs = qs.filter(doctor__user=user)
+        elif not (user.is_superuser or user.role in (User.Role.ADMIN, User.Role.RECEPTIONIST)):
+            return qs.none()
         doctor = self.request.query_params.get("doctor")
         if doctor:
             qs = qs.filter(doctor_id=doctor)

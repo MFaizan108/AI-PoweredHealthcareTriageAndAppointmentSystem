@@ -10,6 +10,7 @@ class HospitalFAQ(models.Model):
     class Meta:
         verbose_name = "Hospital FAQ"
         verbose_name_plural = "Hospital FAQs"
+        ordering = ["id"]
 
     def __str__(self):
         return self.question

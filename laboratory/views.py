@@ -19,10 +19,14 @@ class LabTestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
-        if user.role == User.Role.PATIENT:
+        if user.is_superuser or user.role in (User.Role.ADMIN, User.Role.LAB_STAFF):
+            pass  # unrestricted
+        elif user.role == User.Role.PATIENT:
             qs = qs.filter(patient__user=user)
         elif user.role == User.Role.DOCTOR:
             qs = qs.filter(requested_by__user=user)
+        else:
+            return qs.none()
         status_param = self.request.query_params.get("status")
         if status_param:
             qs = qs.filter(status=status_param)
@@ -47,11 +51,13 @@ class LabReportViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
+        if user.is_superuser or user.role in (User.Role.ADMIN, User.Role.LAB_STAFF):
+            return qs
         if user.role == User.Role.PATIENT:
-            qs = qs.filter(lab_test__patient__user=user)
-        elif user.role == User.Role.DOCTOR:
-            qs = qs.filter(lab_test__requested_by__user=user)
-        return qs
+            return qs.filter(lab_test__patient__user=user)
+        if user.role == User.Role.DOCTOR:
+            return qs.filter(lab_test__requested_by__user=user)
+        return qs.none()
 
     def perform_create(self, serializer):
         report = serializer.save(uploaded_by=self.request.user)

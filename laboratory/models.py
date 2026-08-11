@@ -41,5 +41,8 @@ class LabReport(models.Model):
     reviewed_by_doctor = models.BooleanField(default=False)
     reviewed_at = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        ordering = ["-uploaded_at"]
+
     def __str__(self):
         return f"Report for {self.lab_test}"

@@ -14,11 +14,16 @@ def _client_ip(request):
 
 
 def _attempted_username(request):
+    # Login requests may arrive as JSON, form-encoded, or multipart (browsable API, curl, various clients)
+    # — request.POST only populates for form/multipart, so try JSON first and fall back to it.
     try:
         body = json.loads(request.body or b"{}")
-        return str(body.get("username", ""))[:150]
+        username = body.get("username", "")
+        if username:
+            return str(username)[:150]
     except Exception:
-        return ""
+        pass
+    return str(request.POST.get("username", ""))[:150]
 
 
 class AuditLogMiddleware:

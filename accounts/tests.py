@@ -90,6 +90,47 @@ class LoginAndTwoFactorTests(APITestCase):
         refresh_attempt = self.client.post("/api/accounts/login/refresh/", {"refresh": refresh})
         self.assertEqual(refresh_attempt.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_refresh_token_returns_a_new_access_token(self):
+        login = self.client.post("/api/accounts/login/", {"username": "loginuser", "password": "LoginPass123!"})
+        refresh = login.data["refresh"]
+
+        resp = self.client.post("/api/accounts/login/refresh/", {"refresh": refresh})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn("access", resp.data)
+        self.assertNotEqual(resp.data["access"], login.data["access"])
+
+    def test_reusing_a_rotated_refresh_token_is_rejected(self):
+        """ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION means a used-once refresh token can't be replayed."""
+        login = self.client.post("/api/accounts/login/", {"username": "loginuser", "password": "LoginPass123!"})
+        old_refresh = login.data["refresh"]
+
+        first_use = self.client.post("/api/accounts/login/refresh/", {"refresh": old_refresh})
+        self.assertEqual(first_use.status_code, status.HTTP_200_OK)
+
+        replay_attempt = self.client.post("/api/accounts/login/refresh/", {"refresh": old_refresh})
+        self.assertEqual(replay_attempt.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_with_already_blacklisted_token_returns_clean_400_not_500(self):
+        login = self.client.post("/api/accounts/login/", {"username": "loginuser", "password": "LoginPass123!"})
+        access, refresh = login.data["access"], login.data["refresh"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+
+        self.client.post("/api/accounts/logout/", {"refresh": refresh})
+        second_logout = self.client.post("/api/accounts/logout/", {"refresh": refresh})
+        self.assertEqual(second_logout.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_unauthenticated_request_to_protected_endpoint_is_rejected(self):
+        resp = self.client.get("/api/accounts/me/")
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_patient_cannot_create_staff_account(self):
+        self.client.force_authenticate(self.user)
+        resp = self.client.post(
+            "/api/accounts/staff/create/",
+            {"username": "sneaky_staff", "email": "sneaky_staff@example.com", "password": "SomePass123!", "role": "doctor"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
 
 class LoginRateLimitTests(APITestCase):
     def setUp(self):

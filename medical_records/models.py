@@ -30,5 +30,8 @@ class Diagnosis(models.Model):
     description = models.TextField()
     diagnosed_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ["-diagnosed_at"]
+
     def __str__(self):
         return self.description[:60]

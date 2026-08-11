@@ -25,10 +25,14 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
-        if user.role == User.Role.PATIENT:
+        if user.is_superuser or user.role == User.Role.ADMIN:
+            pass  # unrestricted
+        elif user.role == User.Role.PATIENT:
             qs = qs.filter(patient__user=user)
         elif user.role == User.Role.DOCTOR:
             qs = qs.filter(doctor__user=user)
+        else:
+            return qs.none()
         patient = self.request.query_params.get("patient")
         if patient:
             qs = qs.filter(patient_id=patient)
@@ -68,8 +72,10 @@ class PrescriptionItemViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
+        if user.is_superuser or user.role == User.Role.ADMIN:
+            return qs
         if user.role == User.Role.PATIENT:
-            qs = qs.filter(prescription__patient__user=user)
-        elif user.role == User.Role.DOCTOR:
-            qs = qs.filter(prescription__doctor__user=user)
-        return qs
+            return qs.filter(prescription__patient__user=user)
+        if user.role == User.Role.DOCTOR:
+            return qs.filter(prescription__doctor__user=user)
+        return qs.none()

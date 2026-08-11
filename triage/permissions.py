@@ -24,7 +24,10 @@ class CanAccessTriageAssessment(BasePermission):
         user = request.user
         if not (user and user.is_authenticated):
             return False
-        is_create = getattr(view, "action", None) == "create" or request.method == "POST"
+        # view.action reliably distinguishes "create" from other POST-based custom actions (e.g. "review")
+        # on TriageAssessmentViewSet. Plain APIViews (TriageAssessView) have no .action, so fall back to method.
+        action = getattr(view, "action", None)
+        is_create = action == "create" if action is not None else request.method == "POST"
         if is_create:
             return bool(user.is_superuser or user.role in (User.Role.PATIENT, User.Role.ADMIN, User.Role.RECEPTIONIST))
         return True

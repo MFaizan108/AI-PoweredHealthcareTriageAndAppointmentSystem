@@ -226,3 +226,131 @@ class WaitlistNotificationTests(APITestCase):
 
         notified = Notification.objects.filter(recipient=self.waiting_patient_user, notification_type=Notification.NotificationType.GENERAL)
         self.assertTrue(notified.exists())
+
+
+@override_settings(**TEST_OVERRIDES)
+class DoctorLeaveBlocksBookingTests(APITestCase):
+    def setUp(self):
+        from doctors.models import DoctorLeave
+
+        department = Department.objects.create(name="Pediatrics")
+        self.doctor_user = User.objects.create_user(
+            username="dr_leave_block", email="dr_leave_block@example.com", password="x", role=User.Role.DOCTOR
+        )
+        self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
+        self.doctor.department = department
+        self.doctor.save()
+
+        today = datetime.date.today()
+        target_weekday = 2  # Wednesday
+        days_ahead = (target_weekday - today.weekday()) % 7 or 7
+        self.leave_date = today + datetime.timedelta(days=days_ahead)
+
+        DoctorAvailability.objects.create(
+            doctor=self.doctor, weekday=target_weekday,
+            start_time=datetime.time(9, 0), end_time=datetime.time(11, 0), slot_duration_minutes=20,
+        )
+        DoctorLeave.objects.create(doctor=self.doctor, start_date=self.leave_date, end_date=self.leave_date, reason="Leave")
+
+        self.patient_user = User.objects.create_user(
+            username="patient_leave_block", email="patient_leave_block@example.com", password="x", role=User.Role.PATIENT
+        )
+
+    def test_available_slots_empty_on_a_leave_day(self):
+        self.client.force_authenticate(self.patient_user)
+        resp = self.client.get(f"/api/appointments/available-slots/?doctor={self.doctor.id}&date={self.leave_date.isoformat()}")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data, [])
+
+    def test_booking_rejected_on_a_leave_day(self):
+        self.client.force_authenticate(self.patient_user)
+        resp = self.client.post(
+            "/api/appointments/",
+            {"doctor": self.doctor.id, "appointment_date": self.leave_date.isoformat(), "slot_start_time": "09:00:00"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+@override_settings(**TEST_OVERRIDES)
+class AppointmentWorkflowTests(APITestCase):
+    def setUp(self):
+        department = Department.objects.create(name="Gastroenterology")
+        self.doctor_user = User.objects.create_user(
+            username="dr_workflow", email="dr_workflow@example.com", password="x", role=User.Role.DOCTOR
+        )
+        self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
+        self.doctor.department = department
+        self.doctor.save()
+
+        self.receptionist = User.objects.create_user(
+            username="recep_workflow", email="recep_workflow@example.com", password="x", role=User.Role.RECEPTIONIST
+        )
+        self.patient_user = User.objects.create_user(
+            username="patient_workflow", email="patient_workflow@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.other_patient_user = User.objects.create_user(
+            username="other_patient_workflow", email="other_patient_workflow@example.com", password="x", role=User.Role.PATIENT
+        )
+        from patients.models import Patient
+
+        self.patient = Patient.objects.get(user=self.patient_user)
+
+        from .models import Appointment
+
+        self.appointment = Appointment.objects.create(
+            patient=self.patient, doctor=self.doctor, appointment_date=datetime.date.today(),
+            slot_start_time=datetime.time(9, 0), slot_end_time=datetime.time(9, 20), token_number="A-101",
+        )
+
+    def test_patient_cannot_cancel_another_patients_appointment(self):
+        self.client.force_authenticate(self.other_patient_user)
+        resp = self.client.post(f"/api/appointments/{self.appointment.id}/cancel/")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_receptionist_can_check_in_patient(self):
+        self.client.force_authenticate(self.receptionist)
+        resp = self.client.post(f"/api/appointments/{self.appointment.id}/check-in/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertTrue(resp.data["status"] in ("confirmed",))
+
+    def test_patient_cannot_check_in_themself(self):
+        self.client.force_authenticate(self.patient_user)
+        resp = self.client.post(f"/api/appointments/{self.appointment.id}/check-in/")
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_set_status_to_in_consultation_stamps_start_time(self):
+        self.client.force_authenticate(self.doctor_user)
+        resp = self.client.post(f"/api/appointments/{self.appointment.id}/set-status/", {"status": "in_consultation"})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertIsNotNone(resp.data["status"])
+        self.appointment.refresh_from_db()
+        self.assertIsNotNone(self.appointment.consultation_started_at)
+
+    def test_set_status_to_completed_stamps_completion_time(self):
+        self.client.force_authenticate(self.doctor_user)
+        self.client.post(f"/api/appointments/{self.appointment.id}/set-status/", {"status": "in_consultation"})
+        resp = self.client.post(f"/api/appointments/{self.appointment.id}/set-status/", {"status": "completed"})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.appointment.refresh_from_db()
+        self.assertIsNotNone(self.appointment.consultation_completed_at)
+
+    def test_set_status_rejects_invalid_status_value(self):
+        self.client.force_authenticate(self.doctor_user)
+        resp = self.client.post(f"/api/appointments/{self.appointment.id}/set-status/", {"status": "not_a_real_status"})
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_queue_lists_todays_non_cancelled_appointments_for_doctor(self):
+        self.client.force_authenticate(self.receptionist)
+        resp = self.client.get(f"/api/appointments/queue/?doctor={self.doctor.id}&date={datetime.date.today().isoformat()}")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]["token_number"], "A-101")
+
+    def test_receptionist_booking_on_behalf_of_patient_requires_patient_field(self):
+        self.client.force_authenticate(self.receptionist)
+        resp = self.client.post(
+            "/api/appointments/",
+            {"doctor": self.doctor.id, "appointment_date": datetime.date.today().isoformat(), "slot_start_time": "09:20:00"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("patient", resp.data)

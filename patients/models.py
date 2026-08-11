@@ -17,5 +17,8 @@ class Patient(models.Model):
     emergency_contact_phone = models.CharField(max_length=20, blank=True)
     known_allergies = models.TextField(blank=True)
 
+    class Meta:
+        ordering = ["id"]
+
     def __str__(self):
         return self.user.get_full_name() or self.user.username

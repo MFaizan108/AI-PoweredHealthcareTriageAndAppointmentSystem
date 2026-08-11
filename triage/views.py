@@ -77,10 +77,15 @@ class TriageAssessmentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, 
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
-        if user.role == User.Role.PATIENT:
+        if user.is_superuser or user.role == User.Role.ADMIN:
+            pass  # unrestricted
+        elif user.role == User.Role.PATIENT:
             qs = qs.filter(patient__user=user)
         elif user.role == User.Role.DOCTOR:
             qs = qs.filter(appointment__doctor__user=user)
+        else:
+            # Receptionist may create an assessment on a patient's behalf but cannot browse them afterwards.
+            return qs.none()
         patient = self.request.query_params.get("patient")
         if patient:
             qs = qs.filter(patient_id=patient)
