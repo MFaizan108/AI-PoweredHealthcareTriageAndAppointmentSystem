@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#37474f"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1200" height="640" fill="#ffffff"/>
+  <text x="600" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#0d3b4f">5 Major Dashboards</text>
+
+  <!-- Core bar -->
+  <rect x="380" y="54" width="440" height="46" rx="8" fill="#0d3b4f"/>
+  <text x="600" y="83" text-anchor="middle" font-size="15" font-weight="600" fill="#ffffff">AI-Powered Healthcare Triage &amp; Appointment System</text>
+
+  <!-- connectors -->
+  <line x1="600" y1="100" x2="600" y2="118" stroke="#37474f" stroke-width="2"/>
+  <line x1="120" y1="118" x2="1080" y2="118" stroke="#37474f" stroke-width="2"/>
+  <line x1="120" y1="118" x2="120" y2="140" stroke="#37474f" stroke-width="2" marker-end="url(#arrow2)"/>
+  <line x1="360" y1="118" x2="360" y2="140" stroke="#37474f" stroke-width="2" marker-end="url(#arrow2)"/>
+  <line x1="600" y1="118" x2="600" y2="140" stroke="#37474f" stroke-width="2" marker-end="url(#arrow2)"/>
+  <line x1="840" y1="118" x2="840" y2="140" stroke="#37474f" stroke-width="2" marker-end="url(#arrow2)"/>
+  <line x1="1080" y1="118" x2="1080" y2="140" stroke="#37474f" stroke-width="2" marker-end="url(#arrow2)"/>
+
+  <!-- Card template function replicated manually -->
+  <!-- 1 Patient -->
+  <g>
+    <rect x="30" y="142" width="180" height="470" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+    <text x="120" y="172" text-anchor="middle" font-size="30">👤</text>
+    <text x="120" y="198" text-anchor="middle" font-size="14" font-weight="700" fill="#0d3b4f">Patient</text>
+    <text x="120" y="216" text-anchor="middle" font-size="12" fill="#37474f">Dashboard</text>
+    <text x="46" y="242" font-size="11.5" fill="#263238">• Profile</text>
+    <text x="46" y="262" font-size="11.5" fill="#263238">• Health info</text>
+    <text x="46" y="282" font-size="11.5" fill="#263238">• Symptom assessment</text>
+    <text x="46" y="302" font-size="11.5" fill="#263238">• AI triage results</text>
+    <text x="46" y="322" font-size="11.5" fill="#263238">• Recommended dept.</text>
+    <text x="46" y="342" font-size="11.5" fill="#263238">• Book appointment</text>
+    <text x="46" y="362" font-size="11.5" fill="#263238">• Upcoming appts</text>
+    <text x="46" y="382" font-size="11.5" fill="#263238">• Appointment history</text>
+    <text x="46" y="402" font-size="11.5" fill="#263238">• Prescriptions</text>
+    <text x="46" y="422" font-size="11.5" fill="#263238">• Medical records</text>
+    <text x="46" y="442" font-size="11.5" fill="#263238">• Lab reports</text>
+    <text x="46" y="462" font-size="11.5" fill="#263238">• Notifications</text>
+    <text x="46" y="482" font-size="11.5" fill="#263238">• Messages w/ doctor</text>
+    <text x="46" y="502" font-size="11.5" fill="#263238">• Emergency guidance</text>
+    <text x="46" y="522" font-size="11.5" fill="#263238">• Feedback/reviews</text>
+  </g>
+
+  <!-- 2 Doctor -->
+  <g>
+    <rect x="228" y="142" width="180" height="470" rx="10" fill="#c8e6c9" stroke="#2e7d32" stroke-width="2"/>
+    <text x="318" y="172" text-anchor="middle" font-size="30">🩺</text>
+    <text x="318" y="198" text-anchor="middle" font-size="14" font-weight="700" fill="#0d3b4f">Doctor</text>
+    <text x="318" y="216" text-anchor="middle" font-size="12" fill="#37474f">Dashboard</text>
+    <text x="244" y="242" font-size="11.5" fill="#1b3a1e">• Today's appointments</text>
+    <text x="244" y="262" font-size="11.5" fill="#1b3a1e">• Upcoming appts</text>
+    <text x="244" y="282" font-size="11.5" fill="#1b3a1e">• Patient queue</text>
+    <text x="244" y="302" font-size="11.5" fill="#1b3a1e">• Patient profile</text>
+    <text x="244" y="322" font-size="11.5" fill="#1b3a1e">• Medical history</text>
+    <text x="244" y="342" font-size="11.5" fill="#1b3a1e">• AI triage summary</text>
+    <text x="244" y="362" font-size="11.5" fill="#1b3a1e">• Submitted symptoms</text>
+    <text x="244" y="382" font-size="11.5" fill="#1b3a1e">• Risk/urgency level</text>
+    <text x="244" y="402" font-size="11.5" fill="#1b3a1e">• Consultation notes</text>
+    <text x="244" y="422" font-size="11.5" fill="#1b3a1e">• Diagnosis entry</text>
+    <text x="244" y="442" font-size="11.5" fill="#1b3a1e">• Prescription mgmt</text>
+    <text x="244" y="462" font-size="11.5" fill="#1b3a1e">• Lab test requests</text>
+    <text x="244" y="482" font-size="11.5" fill="#1b3a1e">• Follow-up scheduling</text>
+    <text x="244" y="502" font-size="11.5" fill="#1b3a1e">• Appointment status</text>
+    <text x="244" y="522" font-size="11.5" fill="#1b3a1e">• Patient communication</text>
+  </g>
+
+  <!-- 3 Admin -->
+  <g>
+    <rect x="426" y="142" width="180" height="470" rx="10" fill="#ffe0b2" stroke="#ef6c00" stroke-width="2"/>
+    <text x="516" y="172" text-anchor="middle" font-size="30">🏥</text>
+    <text x="516" y="198" text-anchor="middle" font-size="14" font-weight="700" fill="#0d3b4f">Hospital/Admin</text>
+    <text x="516" y="216" text-anchor="middle" font-size="12" fill="#37474f">Dashboard</text>
+    <text x="442" y="242" font-size="11.5" fill="#7a3b00">• Total patients</text>
+    <text x="442" y="262" font-size="11.5" fill="#7a3b00">• Total doctors</text>
+    <text x="442" y="282" font-size="11.5" fill="#7a3b00">• Departments</text>
+    <text x="442" y="302" font-size="11.5" fill="#7a3b00">• Appointments</text>
+    <text x="442" y="322" font-size="11.5" fill="#7a3b00">• Active/cancelled</text>
+    <text x="442" y="342" font-size="11.5" fill="#7a3b00">• Revenue</text>
+    <text x="442" y="362" font-size="11.5" fill="#7a3b00">• Doctor performance</text>
+    <text x="442" y="382" font-size="11.5" fill="#7a3b00">• Patient statistics</text>
+    <text x="442" y="402" font-size="11.5" fill="#7a3b00">• AI triage statistics</text>
+    <text x="442" y="422" font-size="11.5" fill="#7a3b00">• Emergency cases</text>
+    <text x="442" y="442" font-size="11.5" fill="#7a3b00">• Reports</text>
+    <text x="442" y="462" font-size="11.5" fill="#7a3b00">• User/role management</text>
+    <text x="442" y="482" font-size="11.5" fill="#7a3b00">• Audit logs</text>
+    <text x="442" y="502" font-size="11.5" fill="#7a3b00">• System settings</text>
+    <text x="442" y="522" font-size="11.5" fill="#7a3b00">• Charts (monthly etc.)</text>
+  </g>
+
+  <!-- 4 Receptionist -->
+  <g>
+    <rect x="624" y="142" width="180" height="470" rx="10" fill="#d1c4e9" stroke="#5e35b1" stroke-width="2"/>
+    <text x="714" y="172" text-anchor="middle" font-size="30">🧑‍💼</text>
+    <text x="714" y="198" text-anchor="middle" font-size="14" font-weight="700" fill="#0d3b4f">Receptionist</text>
+    <text x="714" y="216" text-anchor="middle" font-size="12" fill="#37474f">Dashboard</text>
+    <text x="640" y="242" font-size="11.5" fill="#301b5c">• Register patient</text>
+    <text x="640" y="262" font-size="11.5" fill="#301b5c">• Search patient</text>
+    <text x="640" y="282" font-size="11.5" fill="#301b5c">• Book appointment</text>
+    <text x="640" y="302" font-size="11.5" fill="#301b5c">• Reschedule</text>
+    <text x="640" y="322" font-size="11.5" fill="#301b5c">• Cancel appointment</text>
+    <text x="640" y="342" font-size="11.5" fill="#301b5c">• Check availability</text>
+    <text x="640" y="362" font-size="11.5" fill="#301b5c">• Manage waiting queue</text>
+    <text x="640" y="382" font-size="11.5" fill="#301b5c">• Check-in patient</text>
+    <text x="640" y="402" font-size="11.5" fill="#301b5c">• Mark as arrived</text>
+    <text x="640" y="422" font-size="11.5" fill="#301b5c">• Generate token</text>
+  </g>
+
+  <!-- 5 Lab Staff -->
+  <g>
+    <rect x="822" y="142" width="180" height="470" rx="10" fill="#b2ebf2" stroke="#00838f" stroke-width="2"/>
+    <text x="912" y="172" text-anchor="middle" font-size="30">🧪</text>
+    <text x="912" y="198" text-anchor="middle" font-size="14" font-weight="700" fill="#0d3b4f">Lab Staff</text>
+    <text x="912" y="216" text-anchor="middle" font-size="12" fill="#37474f">Dashboard</text>
+    <text x="838" y="242" font-size="11.5" fill="#00424a">• Test requests</text>
+    <text x="838" y="262" font-size="11.5" fill="#00424a">• Pending tests</text>
+    <text x="838" y="282" font-size="11.5" fill="#00424a">• Sample status</text>
+    <text x="838" y="302" font-size="11.5" fill="#00424a">• Upload reports</text>
+    <text x="838" y="322" font-size="11.5" fill="#00424a">• Update test results</text>
+    <text x="838" y="342" font-size="11.5" fill="#00424a">• Patient lab history</text>
+    <text x="838" y="362" font-size="11.5" fill="#00424a">• Auto-notify doctor</text>
+  </g>
+
+  <!-- 6th column unused placeholder to balance layout: token queue example moved below -->
+  <rect x="1020" y="142" width="150" height="470" rx="10" fill="#fafafa" stroke="#b0bec5" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="1095" y="172" text-anchor="middle" font-size="12" fill="#78909c">Example</text>
+  <text x="1030" y="200" font-size="10.5" fill="#455a64">Token  Doctor  Status</text>
+  <text x="1030" y="222" font-size="10.5" fill="#455a64">A-101  Ahmed   Waiting</text>
+  <text x="1030" y="244" font-size="10.5" fill="#455a64">A-102  Ahmed   In-Consult</text>
+  <text x="1030" y="266" font-size="10.5" fill="#455a64">A-103  Ahmed   Completed</text>
+</svg>

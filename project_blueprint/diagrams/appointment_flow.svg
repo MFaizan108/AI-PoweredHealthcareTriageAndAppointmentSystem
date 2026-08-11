@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 420" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#37474f"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="980" height="420" fill="#ffffff"/>
+  <text x="490" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#0d3b4f">Smart Appointment Booking Flow</text>
+
+  <!-- Steps -->
+  <g>
+    <rect x="20" y="150" width="160" height="70" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+    <text x="100" y="190" text-anchor="middle" font-size="13.5" fill="#0d3b4f">Select Department</text>
+  </g>
+  <line x1="180" y1="185" x2="216" y2="185" stroke="#37474f" stroke-width="2" marker-end="url(#arrow4)"/>
+
+  <g>
+    <rect x="218" y="150" width="160" height="70" rx="10" fill="#c8e6c9" stroke="#2e7d32" stroke-width="2"/>
+    <text x="298" y="190" text-anchor="middle" font-size="13.5" fill="#1b3a1e">Select Doctor</text>
+  </g>
+  <line x1="378" y1="185" x2="414" y2="185" stroke="#37474f" stroke-width="2" marker-end="url(#arrow4)"/>
+
+  <g>
+    <rect x="416" y="150" width="160" height="70" rx="10" fill="#ffe0b2" stroke="#ef6c00" stroke-width="2"/>
+    <text x="496" y="190" text-anchor="middle" font-size="13.5" fill="#7a3b00">Select Date</text>
+  </g>
+  <line x1="576" y1="185" x2="612" y2="185" stroke="#37474f" stroke-width="2" marker-end="url(#arrow4)"/>
+
+  <g>
+    <rect x="614" y="150" width="160" height="70" rx="10" fill="#d1c4e9" stroke="#5e35b1" stroke-width="2"/>
+    <text x="694" y="182" text-anchor="middle" font-size="13.5" fill="#301b5c">Available</text>
+    <text x="694" y="200" text-anchor="middle" font-size="13.5" fill="#301b5c">Slots</text>
+  </g>
+  <line x1="774" y1="185" x2="810" y2="185" stroke="#37474f" stroke-width="2" marker-end="url(#arrow4)"/>
+
+  <g>
+    <rect x="812" y="150" width="150" height="70" rx="10" fill="#ffcdd2" stroke="#c62828" stroke-width="2"/>
+    <text x="887" y="182" text-anchor="middle" font-size="13" fill="#5f1414">Book</text>
+    <text x="887" y="200" text-anchor="middle" font-size="13" fill="#5f1414">Appointment</text>
+  </g>
+
+  <!-- Supporting features row -->
+  <text x="490" y="270" text-anchor="middle" font-size="13" font-weight="700" fill="#37474f">Supporting features</text>
+  <text x="60" y="300" font-size="12" fill="#455a64">• Doctor availability</text>
+  <text x="60" y="320" font-size="12" fill="#455a64">• Working hours</text>
+  <text x="60" y="340" font-size="12" fill="#455a64">• Slot generation</text>
+  <text x="260" y="300" font-size="12" fill="#455a64">• Appointment confirmation</text>
+  <text x="260" y="320" font-size="12" fill="#455a64">• Rescheduling</text>
+  <text x="260" y="340" font-size="12" fill="#455a64">• Cancellation</text>
+  <text x="500" y="300" font-size="12" fill="#455a64">• Waiting list</text>
+  <text x="500" y="320" font-size="12" fill="#455a64">• Appointment reminders</text>
+  <text x="500" y="340" font-size="12" fill="#455a64">• Doctor leave management</text>
+  <text x="740" y="300" font-size="12" fill="#455a64">• Token/queue system</text>
+  <text x="740" y="320" font-size="12" fill="#455a64">• Double-booking prevention</text>
+</svg>

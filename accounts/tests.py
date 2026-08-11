@@ -1,0 +1,172 @@
+import pyotp
+from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
+from django.test import override_settings
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from .models import User
+
+TEST_OVERRIDES = dict(
+    CELERY_TASK_ALWAYS_EAGER=True,
+    MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}},
+)
+
+
+@override_settings(**TEST_OVERRIDES)
+class RegistrationTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_public_registration_defaults_to_patient(self):
+        resp = self.client.post(
+            "/api/accounts/register/",
+            {"username": "newpatient", "email": "newpatient@example.com", "password": "SomePass123!"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
+        self.assertEqual(resp.data["role"], "patient")
+
+    def test_new_user_is_not_email_verified_until_confirmed(self):
+        self.client.post(
+            "/api/accounts/register/",
+            {"username": "unverified", "email": "unverified@example.com", "password": "SomePass123!"},
+        )
+        user = User.objects.get(username="unverified")
+        self.assertFalse(user.email_verified)
+
+    def test_public_registration_cannot_self_assign_admin_role(self):
+        resp = self.client.post(
+            "/api/accounts/register/",
+            {"username": "sneaky", "email": "sneaky@example.com", "password": "SomePass123!", "role": "admin"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class LoginAndTwoFactorTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(
+            username="loginuser", email="loginuser@example.com", password="LoginPass123!", role=User.Role.PATIENT
+        )
+
+    def test_login_returns_access_and_refresh_tokens(self):
+        resp = self.client.post("/api/accounts/login/", {"username": "loginuser", "password": "LoginPass123!"})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn("access", resp.data)
+        self.assertIn("refresh", resp.data)
+
+    def test_2fa_setup_enable_and_enforced_login(self):
+        self.client.force_authenticate(self.user)
+        setup = self.client.post("/api/accounts/2fa/setup/")
+        self.assertEqual(setup.status_code, status.HTTP_200_OK)
+        secret = setup.data["secret"]
+
+        valid_code = pyotp.TOTP(secret).now()
+        enable = self.client.post("/api/accounts/2fa/enable/", {"otp_code": valid_code})
+        self.assertEqual(enable.status_code, status.HTTP_200_OK)
+        self.assertTrue(enable.data["is_2fa_enabled"])
+
+        self.client.force_authenticate(None)
+
+        without_otp = self.client.post("/api/accounts/login/", {"username": "loginuser", "password": "LoginPass123!"})
+        self.assertEqual(without_otp.status_code, status.HTTP_400_BAD_REQUEST)
+
+        fresh_code = pyotp.TOTP(secret).now()
+        with_otp = self.client.post(
+            "/api/accounts/login/", {"username": "loginuser", "password": "LoginPass123!", "otp_code": fresh_code}
+        )
+        self.assertEqual(with_otp.status_code, status.HTTP_200_OK)
+
+    def test_logout_blacklists_refresh_token(self):
+        login = self.client.post("/api/accounts/login/", {"username": "loginuser", "password": "LoginPass123!"})
+        access, refresh = login.data["access"], login.data["refresh"]
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        logout = self.client.post("/api/accounts/logout/", {"refresh": refresh})
+        self.assertEqual(logout.status_code, status.HTTP_205_RESET_CONTENT)
+
+        refresh_attempt = self.client.post("/api/accounts/login/refresh/", {"refresh": refresh})
+        self.assertEqual(refresh_attempt.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class LoginRateLimitTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        User.objects.create_user(
+            username="throttleuser", email="throttleuser@example.com", password="ThrottlePass123!", role=User.Role.PATIENT
+        )
+
+    def test_login_is_rate_limited_after_5_attempts_per_minute(self):
+        for _ in range(5):
+            resp = self.client.post("/api/accounts/login/", {"username": "throttleuser", "password": "wrong"})
+            self.assertNotEqual(resp.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        sixth = self.client.post("/api/accounts/login/", {"username": "throttleuser", "password": "wrong"})
+        self.assertEqual(sixth.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+@override_settings(**TEST_OVERRIDES)
+class EmailVerificationTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_verify_email_with_token_from_registration(self):
+        from django.core import signing
+
+        from .verification import VERIFY_EMAIL_SALT
+
+        self.client.post(
+            "/api/accounts/register/",
+            {"username": "toverify", "email": "toverify@example.com", "password": "SomePass123!"},
+        )
+        user = User.objects.get(username="toverify")
+        token = signing.dumps({"user_id": user.id}, salt=VERIFY_EMAIL_SALT)
+
+        resp = self.client.post("/api/accounts/verify-email/confirm/", {"token": token})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        user.refresh_from_db()
+        self.assertTrue(user.email_verified)
+
+    def test_invalid_token_rejected(self):
+        resp = self.client.post("/api/accounts/verify-email/confirm/", {"token": "not-a-real-token"})
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+@override_settings(**TEST_OVERRIDES)
+class PasswordResetTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(
+            username="resetme", email="resetme@example.com", password="OldPass123!", role=User.Role.PATIENT
+        )
+
+    def test_reset_request_never_reveals_whether_email_exists(self):
+        resp_real = self.client.post("/api/accounts/password-reset/request/", {"email": "resetme@example.com"})
+        resp_fake = self.client.post("/api/accounts/password-reset/request/", {"email": "nobody@example.com"})
+        self.assertEqual(resp_real.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp_fake.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp_real.data, resp_fake.data)
+
+    def test_confirm_with_valid_token_changes_password(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+
+        resp = self.client.post(
+            "/api/accounts/password-reset/confirm/",
+            {"uid": uid, "token": token, "new_password": "BrandNewPass456!"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        login = self.client.post("/api/accounts/login/", {"username": "resetme", "password": "BrandNewPass456!"})
+        self.assertEqual(login.status_code, status.HTTP_200_OK)
+
+    def test_confirm_with_invalid_token_rejected(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        resp = self.client.post(
+            "/api/accounts/password-reset/confirm/",
+            {"uid": uid, "token": "bad-token", "new_password": "BrandNewPass456!"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
