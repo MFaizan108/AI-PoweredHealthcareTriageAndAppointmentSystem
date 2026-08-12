@@ -64,9 +64,15 @@ def _call_groq(settings_obj, system_prompt, prompt):
     return data["choices"][0]["message"]["content"].strip()
 
 
-def ask_llm(system_prompt, user_prompt):
-    """Generic Ollama/Groq call, shared by any app. Returns (text_or_None, provider, error_or_None)."""
-    settings_obj = AIProviderSettings.get_solo()
+def ask_llm(system_prompt, user_prompt, settings_obj=None):
+    """Generic Ollama/Groq call, shared by any app. Returns (text_or_None, provider, error_or_None).
+
+    `settings_obj` defaults to the persisted admin singleton, but callers (e.g. the LLM
+    evaluation harness, which needs to probe a provider without changing the live admin
+    config) may pass an unsaved AIProviderSettings instance instead.
+    """
+    if settings_obj is None:
+        settings_obj = AIProviderSettings.get_solo()
 
     if not settings_obj.is_enabled:
         return None, None, "AI is disabled by admin."

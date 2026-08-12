@@ -341,6 +341,20 @@ Ab backend ko proper UI do.
 
 ## Phase 12 — AI Evaluation & Safety 🤖
 
+**Status: ✅ Implemented (2026-08-13)** — a new `python manage.py evaluate_ai` command runs all
+three evaluation layers and produces a Markdown report: a named rule-engine test matrix (Red
+Flag/High/Moderate/Low/Unknown, 100% accuracy against the canonical seeded symptom set), live
+LLM latency/failure/timeout/invalid-response metrics per provider (Ollama vs Groq, via a new
+`ask_llm(..., settings_obj=...)` override that probes a provider without touching the admin's
+persisted config), and a full-stack RAG authorization matrix (Patient A asks about Patient B ->
+DENY, Patient A asks about own data -> ALLOW) driven through the real `/api/ai-assistant/ask/`
+endpoint inside a transaction that's always rolled back. Found and fixed a real bug on the first
+live run: outside `manage.py test`, DRF's `APIClient` was rejected by the `ALLOWED_HOSTS` check
+(Django's test-environment setup normally patches that in, but a plain command process doesn't
+get it for free) — fixed with a scoped `override_settings`. 193/193 tests passing (+10 for the
+evaluation harness itself). See [docs/ai_evaluation.md](../docs/ai_evaluation.md) and the
+checked-in example run at [docs/ai_evaluation_report.md](../docs/ai_evaluation_report.md).
+
 Particularly important phase for this project. Ab AI ko sirf "working" prove nahi karna; evaluate karna hai.
 
 **Rule Engine Evaluation** — create test cases:
@@ -374,6 +388,19 @@ Patient A asks about own appointment
 ---
 
 ## Phase 13 — Demo / Seed Environment 🧑‍💻
+
+**Status: ✅ Implemented (2026-08-13)** — `python manage.py seed_demo` creates one account per
+role (admin/3 doctors across different departments/receptionist/lab staff/3 patients, password
+`Demo@12345` for all), each demo doctor gets a real Mon–Fri availability schedule (so they're
+actually bookable — closing the same gap Phase 11 found), and a connected clinical workflow:
+appointments (past+upcoming), medical records with diagnoses, prescriptions, lab tests (one
+completed, one pending), invoices/payments, a message exchange, notifications, and two AI
+examples (real rule-engine triage assessments + a RAG assistant query log). Idempotent — safe to
+re-run, verified by running it twice and confirming zero duplicate rows; passwords are set via
+`create_user()` specifically because a plain `get_or_create()` on the User model would silently
+store them in plaintext. 198/198 tests passing (+5 for the seed command itself, including an
+actual login through `/api/accounts/login/` to prove the hashed password really works). See
+[docs/demo.md](../docs/demo.md).
 
 Ek command se complete demo system ready ho:
 ```
