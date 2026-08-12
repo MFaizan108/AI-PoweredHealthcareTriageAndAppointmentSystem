@@ -103,10 +103,13 @@ monitoring/alerting on top of this.
 
 ## Backups
 
-`scripts/backup_db.sh` / `scripts/restore_db.sh` — manual `pg_dump`/`psql` wrappers against the
-`db` container, gzip-compressed, timestamped, with age-based pruning. This is the basic mechanism
-only; Phase 16 adds a scheduled cadence and a test-restore verification cycle. Run a restore drill
-on a scratch database before trusting a backup in an actual incident.
+`scripts/backup_db.sh` (database) and `scripts/backup_media.sh` (uploaded files) — gzip-compressed,
+timestamped, age-pruned. `scripts/backup_verify.sh` runs the test-restore cycle (restore into a
+disposable scratch database, check it actually has data, drop the scratch database) — the thing
+that actually proves a backup is usable, not just that the dump command exited 0. Recommended cron
+schedule and what is/isn't covered: [docs/backups.md](backups.md). `scripts/restore_db.sh` /
+`scripts/restore_media.sh` restore into the real database/volume for an actual incident —
+destructive, interactive-confirmation-only, never run as part of routine verification.
 
 ## Zero-downtime notes
 

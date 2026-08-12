@@ -335,6 +335,7 @@ main/
 ## Future Enhancements
 
 Tracked in [project_blueprint/21_roadmap_phase5_to_20.md](project_blueprint/21_roadmap_phase5_to_20.md):
-CI/CD hardening (lint + security scanning + Docker build gates), automated backup/restore
-verification, a final security/architecture review pass, a recorded demo walkthrough, and the
-GitHub portfolio release polish (screenshots, architecture diagrams, deployment URL).
+a final security/architecture review pass, a recorded demo walkthrough, and the GitHub portfolio
+release polish (screenshots, architecture diagrams, deployment URL). CI/CD hardening and
+automated backup/restore verification are already done — see [docs/cicd.md](docs/cicd.md) and
+[docs/backups.md](docs/backups.md).

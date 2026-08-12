@@ -2,8 +2,9 @@
 # Manual/cron-able Postgres backup. Dumps the `db` container's database to a gzip-compressed,
 # timestamped file under ./backups/ and prunes anything older than KEEP_DAYS.
 #
-# This is the basic mechanism only — see project_blueprint/21_roadmap_phase5_to_20.md Phase 16 for
-# the planned scheduled daily/weekly cadence and the test-restore verification cycle.
+# Run on a schedule via cron (see docs/backups.md for the recommended daily/weekly crontab
+# lines) and verify what it actually produces with ./scripts/backup_verify.sh — a backup file
+# existing proves pg_dump didn't crash, not that it's restorable.
 #
 # Usage: ./scripts/backup_db.sh   (reads POSTGRES_DB/POSTGRES_USER from .env via docker compose)
 set -euo pipefail

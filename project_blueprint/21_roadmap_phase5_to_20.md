@@ -516,6 +516,20 @@ Deploy
 
 ## Phase 16 — Production Backup & Recovery 💾
 
+**Status: ✅ Implemented (2026-08-13)** — `scripts/backup_verify.sh` implements the literal
+test-restore cycle (PostgreSQL → Backup → Delete test DB → Restore → Verify) against a disposable
+scratch database, never the real one; validated against the live dev database (dumped, restored
+into a scratch DB, confirmed exact row counts matched, dropped the scratch DB) before being
+documented as trustworthy. Added `scripts/backup_media.sh`/`restore_media.sh` for the
+`media_data` volume (lab report uploads, message attachments) alongside the existing DB
+scripts — deliberately **not** backing up prescription PDFs as files, since they're generated on
+demand from DB rows (`prescriptions/pdf.py`) and never stored, so there's nothing there a file
+backup would add. Automation is a documented host crontab (daily backup, weekly verify-drill) —
+not a bespoke scheduler container, since this project is a single-host `docker compose`
+deployment with no existing scheduling infra to hook a new container into, and cron calling the
+already-tested scripts is simpler than inventing and debugging a new always-running service for
+the same job. See [docs/backups.md](../docs/backups.md).
+
 Healthcare data ke liye critical.
 
 **Database — automatic:**
