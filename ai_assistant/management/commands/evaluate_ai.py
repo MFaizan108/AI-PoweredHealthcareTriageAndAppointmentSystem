@@ -23,7 +23,9 @@ def _rule_engine_section(results):
 
 def _llm_section(metrics_by_provider):
     lines = ["## LLM Evaluation (Layer 3)", "", "```"]
-    lines.append(f"{'Provider':<10} {'Success':<10} {'Failure':<10} {'Timeout':<10} {'Invalid':<10} {'Avg ms':<10} {'Min ms':<10} {'Max ms'}")
+    lines.append(
+        f"{'Provider':<10} {'Success':<10} {'Failure':<10} {'Timeout':<10} {'Invalid':<10} {'Avg ms':<10} {'Min ms':<10} {'Max ms'}"
+    )
     lines.append("-" * 90)
     for provider, m in metrics_by_provider.items():
         lines.append(
@@ -61,7 +63,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--output", default=None,
+            "--output",
+            default=None,
             help="Optional path to also write the report as Markdown (e.g. docs/ai_evaluation_report.md).",
         )
 

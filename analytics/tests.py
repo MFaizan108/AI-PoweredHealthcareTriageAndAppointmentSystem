@@ -6,10 +6,16 @@ from accounts.models import User
 
 class AnalyticsAccessTests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user(username="an_admin", email="an_admin@example.com", password="x", role=User.Role.ADMIN)
+        self.admin = User.objects.create_user(
+            username="an_admin", email="an_admin@example.com", password="x", role=User.Role.ADMIN
+        )
         self.doctor = User.objects.create_user(username="an_doc", email="an_doc@example.com", password="x", role=User.Role.DOCTOR)
-        self.patient = User.objects.create_user(username="an_pat", email="an_pat@example.com", password="x", role=User.Role.PATIENT)
-        self.receptionist = User.objects.create_user(username="an_recep", email="an_recep@example.com", password="x", role=User.Role.RECEPTIONIST)
+        self.patient = User.objects.create_user(
+            username="an_pat", email="an_pat@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.receptionist = User.objects.create_user(
+            username="an_recep", email="an_recep@example.com", password="x", role=User.Role.RECEPTIONIST
+        )
 
     def test_admin_can_access_all_three_analytics_endpoints(self):
         self.client.force_authenticate(self.admin)
@@ -35,7 +41,13 @@ class AnalyticsAccessTests(APITestCase):
     def test_patient_analytics_response_shape(self):
         self.client.force_authenticate(self.admin)
         resp = self.client.get("/api/analytics/patients/")
-        for key in ("total_patients", "new_patients_this_month", "gender_distribution", "age_distribution", "department_utilization"):
+        for key in (
+            "total_patients",
+            "new_patients_this_month",
+            "gender_distribution",
+            "age_distribution",
+            "department_utilization",
+        ):
             self.assertIn(key, resp.data)
 
     def test_ai_analytics_includes_monitoring_disclaimer_note(self):

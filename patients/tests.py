@@ -9,17 +9,29 @@ from .models import Patient
 class PatientAccessTests(APITestCase):
     def setUp(self):
         self.patient_user = User.objects.create_user(
-            username="pat_a", email="pat_a@example.com", password="x", role=User.Role.PATIENT,
+            username="pat_a",
+            email="pat_a@example.com",
+            password="x",
+            role=User.Role.PATIENT,
             first_name="Ali",
         )
         self.other_patient_user = User.objects.create_user(
-            username="pat_b", email="pat_b@example.com", password="x", role=User.Role.PATIENT,
+            username="pat_b",
+            email="pat_b@example.com",
+            password="x",
+            role=User.Role.PATIENT,
         )
         self.doctor_user = User.objects.create_user(
-            username="pat_doc", email="pat_doc@example.com", password="x", role=User.Role.DOCTOR,
+            username="pat_doc",
+            email="pat_doc@example.com",
+            password="x",
+            role=User.Role.DOCTOR,
         )
         self.receptionist = User.objects.create_user(
-            username="pat_recep", email="pat_recep@example.com", password="x", role=User.Role.RECEPTIONIST,
+            username="pat_recep",
+            email="pat_recep@example.com",
+            password="x",
+            role=User.Role.RECEPTIONIST,
         )
 
     def test_patient_profile_auto_created_on_user_creation(self):

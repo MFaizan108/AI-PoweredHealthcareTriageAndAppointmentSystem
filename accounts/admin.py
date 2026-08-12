@@ -8,12 +8,8 @@ from .models import TwoFactorRecoveryCode, User
 class CustomUserAdmin(UserAdmin):
     list_display = ["username", "email", "role", "first_name", "last_name", "is_staff", "is_active"]
     list_filter = ["role", "is_staff", "is_active"]
-    fieldsets = UserAdmin.fieldsets + (
-        ("Role info", {"fields": ("role", "phone_number")}),
-    )
-    add_fieldsets = UserAdmin.add_fieldsets + (
-        ("Role info", {"fields": ("role", "phone_number", "email")}),
-    )
+    fieldsets = UserAdmin.fieldsets + (("Role info", {"fields": ("role", "phone_number")}),)
+    add_fieldsets = UserAdmin.add_fieldsets + (("Role info", {"fields": ("role", "phone_number", "email")}),)
 
 
 @admin.register(TwoFactorRecoveryCode)

@@ -21,8 +21,18 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicalRecord
         fields = [
-            "id", "patient", "patient_detail", "doctor", "doctor_detail", "appointment",
-            "visit_date", "consultation_notes", "follow_up_date", "follow_up_notes",
-            "diagnoses", "created_at", "updated_at",
+            "id",
+            "patient",
+            "patient_detail",
+            "doctor",
+            "doctor_detail",
+            "appointment",
+            "visit_date",
+            "consultation_notes",
+            "follow_up_date",
+            "follow_up_notes",
+            "diagnoses",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]

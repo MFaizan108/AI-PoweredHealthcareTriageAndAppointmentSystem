@@ -26,12 +26,17 @@ def send_verification_email(user):
         user.email,
         "Verify your email",
         f"Verify your account using this token: {token}\n\n"
-        f"Submit it to POST /api/accounts/verify-email/confirm/ as {{\"token\": \"...\"}}.\n"
+        f'Submit it to POST /api/accounts/verify-email/confirm/ as {{"token": "..."}}.\n'
         "This link expires in 24 hours.",
     )
 
 
-@extend_schema(tags=["Accounts"], request=None, responses=DetailResponseSerializer, description="Re-sends the account email-verification token to the current user's email address.")
+@extend_schema(
+    tags=["Accounts"],
+    request=None,
+    responses=DetailResponseSerializer,
+    description="Re-sends the account email-verification token to the current user's email address.",
+)
 class ResendVerificationView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -46,7 +51,12 @@ class VerifyEmailConfirmSerializer(serializers.Serializer):
     token = serializers.CharField()
 
 
-@extend_schema(tags=["Accounts"], request=VerifyEmailConfirmSerializer, responses=DetailResponseSerializer, description="Confirms the signed token (24h expiry) sent to the user's email and marks the account verified.")
+@extend_schema(
+    tags=["Accounts"],
+    request=VerifyEmailConfirmSerializer,
+    responses=DetailResponseSerializer,
+    description="Confirms the signed token (24h expiry) sent to the user's email and marks the account verified.",
+)
 class VerifyEmailConfirmView(APIView):
     permission_classes = [AllowAny]
 

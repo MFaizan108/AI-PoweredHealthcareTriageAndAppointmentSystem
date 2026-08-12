@@ -12,8 +12,12 @@ from .views import LIST_CACHE_KEY
 class DepartmentPermissionTests(APITestCase):
     def setUp(self):
         self.department = Department.objects.create(name="Cardiology")
-        self.admin = User.objects.create_user(username="dept_admin", email="dept_admin@example.com", password="x", role=User.Role.ADMIN)
-        self.patient = User.objects.create_user(username="dept_patient", email="dept_patient@example.com", password="x", role=User.Role.PATIENT)
+        self.admin = User.objects.create_user(
+            username="dept_admin", email="dept_admin@example.com", password="x", role=User.Role.ADMIN
+        )
+        self.patient = User.objects.create_user(
+            username="dept_patient", email="dept_patient@example.com", password="x", role=User.Role.PATIENT
+        )
 
     def test_authenticated_user_can_list_departments(self):
         self.client.force_authenticate(self.patient)
@@ -44,7 +48,9 @@ class DepartmentPermissionTests(APITestCase):
 class DepartmentListCacheTests(APITestCase):
     def setUp(self):
         cache.clear()
-        self.admin = User.objects.create_user(username="dept_cache_admin", email="dept_cache_admin@example.com", password="x", role=User.Role.ADMIN)
+        self.admin = User.objects.create_user(
+            username="dept_cache_admin", email="dept_cache_admin@example.com", password="x", role=User.Role.ADMIN
+        )
 
     def test_list_populates_cache_and_new_department_invalidates_it(self):
         Department.objects.create(name="Radiology")
@@ -73,7 +79,9 @@ class DepartmentListCacheTests(APITestCase):
 
 class CORSHeaderTests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user(username="cors_admin", email="cors_admin@example.com", password="x", role=User.Role.ADMIN)
+        self.admin = User.objects.create_user(
+            username="cors_admin", email="cors_admin@example.com", password="x", role=User.Role.ADMIN
+        )
 
     def test_no_origins_trusted_by_default(self):
         resp = self.client.get("/api/departments/", HTTP_ORIGIN="https://evil.example.com", HTTP_AUTHORIZATION=self._bearer())

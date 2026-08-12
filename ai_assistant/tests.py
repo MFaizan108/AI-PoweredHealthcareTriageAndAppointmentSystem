@@ -12,33 +12,49 @@ from patients.models import Patient
 
 from .models import AssistantQueryLog, HospitalFAQ
 
-TEST_OVERRIDES = dict(CELERY_TASK_ALWAYS_EAGER=True, MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}})
+TEST_OVERRIDES = dict(
+    CELERY_TASK_ALWAYS_EAGER=True, MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}}
+)
 
 
 @override_settings(**TEST_OVERRIDES)
 class AssistantAskPermissionTests(APITestCase):
     def setUp(self):
         dept = Department.objects.create(name="Assistant Dept")
-        self.doctor_user = User.objects.create_user(username="asst_doc", email="asst_doc@example.com", password="x", role=User.Role.DOCTOR)
+        self.doctor_user = User.objects.create_user(
+            username="asst_doc", email="asst_doc@example.com", password="x", role=User.Role.DOCTOR
+        )
         self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
         self.doctor.department = dept
         self.doctor.save()
 
-        self.patient_user = User.objects.create_user(username="asst_pat_a", email="asst_pat_a@example.com", password="x", role=User.Role.PATIENT)
+        self.patient_user = User.objects.create_user(
+            username="asst_pat_a", email="asst_pat_a@example.com", password="x", role=User.Role.PATIENT
+        )
         self.patient = Patient.objects.get(user=self.patient_user)
 
-        self.other_patient_user = User.objects.create_user(username="asst_pat_b", email="asst_pat_b@example.com", password="x", role=User.Role.PATIENT)
+        self.other_patient_user = User.objects.create_user(
+            username="asst_pat_b", email="asst_pat_b@example.com", password="x", role=User.Role.PATIENT
+        )
         self.other_patient = Patient.objects.get(user=self.other_patient_user)
 
         from appointments.models import Appointment
 
         self.appointment = Appointment.objects.create(
-            patient=self.patient, doctor=self.doctor, appointment_date=datetime.date.today() + datetime.timedelta(days=3),
-            slot_start_time=datetime.time(9, 0), slot_end_time=datetime.time(9, 20), token_number="A-101",
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=datetime.date.today() + datetime.timedelta(days=3),
+            slot_start_time=datetime.time(9, 0),
+            slot_end_time=datetime.time(9, 20),
+            token_number="A-101",
         )
         self.other_appointment = Appointment.objects.create(
-            patient=self.other_patient, doctor=self.doctor, appointment_date=datetime.date.today() + datetime.timedelta(days=3),
-            slot_start_time=datetime.time(9, 20), slot_end_time=datetime.time(9, 40), token_number="A-102",
+            patient=self.other_patient,
+            doctor=self.doctor,
+            appointment_date=datetime.date.today() + datetime.timedelta(days=3),
+            slot_start_time=datetime.time(9, 20),
+            slot_end_time=datetime.time(9, 40),
+            token_number="A-102",
         )
 
     def test_doctor_role_cannot_use_patient_assistant(self):
@@ -93,8 +109,12 @@ class AssistantAskPermissionTests(APITestCase):
 @override_settings(**TEST_OVERRIDES)
 class HospitalFAQTests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user(username="faq_admin", email="faq_admin@example.com", password="x", role=User.Role.ADMIN)
-        self.patient = User.objects.create_user(username="faq_pat", email="faq_pat@example.com", password="x", role=User.Role.PATIENT)
+        self.admin = User.objects.create_user(
+            username="faq_admin", email="faq_admin@example.com", password="x", role=User.Role.ADMIN
+        )
+        self.patient = User.objects.create_user(
+            username="faq_pat", email="faq_pat@example.com", password="x", role=User.Role.PATIENT
+        )
 
     def test_authenticated_user_can_read_faqs(self):
         HospitalFAQ.objects.create(question="What are visiting hours?", answer="9am-5pm daily.")

@@ -13,27 +13,40 @@ class RuleBasedTriageTests(TestCase):
         self.derma_dept = Department.objects.create(name="Dermatology")
 
         Symptom.objects.create(
-            name="Fever", category=Symptom.Category.GENERAL, keywords="fever",
-            severity_weight=2, red_flag=False, suggested_department=self.general_dept,
+            name="Fever",
+            category=Symptom.Category.GENERAL,
+            keywords="fever",
+            severity_weight=2,
+            red_flag=False,
+            suggested_department=self.general_dept,
         )
         Symptom.objects.create(
-            name="Severe Headache", category=Symptom.Category.NEUROLOGICAL, keywords="severe headache",
-            severity_weight=4, red_flag=False, suggested_department=self.general_dept,
+            name="Severe Headache",
+            category=Symptom.Category.NEUROLOGICAL,
+            keywords="severe headache",
+            severity_weight=4,
+            red_flag=False,
+            suggested_department=self.general_dept,
         )
         Symptom.objects.create(
-            name="Difficulty Breathing", category=Symptom.Category.RESPIRATORY,
+            name="Difficulty Breathing",
+            category=Symptom.Category.RESPIRATORY,
             keywords="difficulty breathing, shortness of breath",
-            severity_weight=6, red_flag=True, suggested_department=self.emergency_dept,
+            severity_weight=6,
+            red_flag=True,
+            suggested_department=self.emergency_dept,
         )
         Symptom.objects.create(
-            name="Skin Rash", category=Symptom.Category.DERMATOLOGICAL, keywords="skin rash, rash",
-            severity_weight=1, red_flag=False, suggested_department=self.derma_dept,
+            name="Skin Rash",
+            category=Symptom.Category.DERMATOLOGICAL,
+            keywords="skin rash, rash",
+            severity_weight=1,
+            red_flag=False,
+            suggested_department=self.derma_dept,
         )
 
     def test_blueprint_example_is_emergency(self):
-        matched, urgency, department, reasoning = run_rule_based_triage(
-            "I have fever, severe headache and difficulty breathing."
-        )
+        matched, urgency, department, reasoning = run_rule_based_triage("I have fever, severe headache and difficulty breathing.")
         self.assertEqual(urgency, TriageAssessment.Urgency.EMERGENCY)
         self.assertEqual(department, self.emergency_dept)
         self.assertIn("Difficulty Breathing", [s.name for s in matched])
@@ -63,12 +76,14 @@ class RuleBasedTriageTests(TestCase):
     def test_high_urgency_without_any_red_flag(self):
         # Severe Headache (4) + Persistent Vomiting (4) = 8, hits HIGH_THRESHOLD with no red-flag symptom involved.
         Symptom.objects.create(
-            name="Persistent Vomiting", category=Symptom.Category.GASTROINTESTINAL, keywords="persistent vomiting",
-            severity_weight=4, red_flag=False, suggested_department=self.general_dept,
+            name="Persistent Vomiting",
+            category=Symptom.Category.GASTROINTESTINAL,
+            keywords="persistent vomiting",
+            severity_weight=4,
+            red_flag=False,
+            suggested_department=self.general_dept,
         )
-        matched, urgency, department, reasoning = run_rule_based_triage(
-            "I have a severe headache and persistent vomiting."
-        )
+        matched, urgency, department, reasoning = run_rule_based_triage("I have a severe headache and persistent vomiting.")
         self.assertEqual(urgency, TriageAssessment.Urgency.HIGH)
 
 
@@ -81,20 +96,38 @@ class TriageAssessAPITests(APITestCase):
         self.emergency_dept = Department.objects.create(name="Emergency Room")
         self.general_dept = Department.objects.create(name="General Medicine API")
         Symptom.objects.create(
-            name="Fever API", category=Symptom.Category.GENERAL, keywords="fever",
-            severity_weight=2, red_flag=False, suggested_department=self.general_dept,
+            name="Fever API",
+            category=Symptom.Category.GENERAL,
+            keywords="fever",
+            severity_weight=2,
+            red_flag=False,
+            suggested_department=self.general_dept,
         )
         Symptom.objects.create(
-            name="Chest Pain API", category=Symptom.Category.CARDIAC, keywords="chest pain",
-            severity_weight=7, red_flag=True, suggested_department=self.emergency_dept,
+            name="Chest Pain API",
+            category=Symptom.Category.CARDIAC,
+            keywords="chest pain",
+            severity_weight=7,
+            red_flag=True,
+            suggested_department=self.emergency_dept,
         )
 
-        self.patient_user = User.objects.create_user(username="triage_pat", email="triage_pat@example.com", password="x", role=User.Role.PATIENT)
+        self.patient_user = User.objects.create_user(
+            username="triage_pat", email="triage_pat@example.com", password="x", role=User.Role.PATIENT
+        )
         self.patient = Patient.objects.get(user=self.patient_user)
-        self.other_patient_user = User.objects.create_user(username="triage_pat2", email="triage_pat2@example.com", password="x", role=User.Role.PATIENT)
-        self.doctor_user = User.objects.create_user(username="triage_doc", email="triage_doc@example.com", password="x", role=User.Role.DOCTOR)
-        self.receptionist = User.objects.create_user(username="triage_recep", email="triage_recep@example.com", password="x", role=User.Role.RECEPTIONIST)
-        self.admin = User.objects.create_user(username="triage_admin", email="triage_admin@example.com", password="x", role=User.Role.ADMIN)
+        self.other_patient_user = User.objects.create_user(
+            username="triage_pat2", email="triage_pat2@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.doctor_user = User.objects.create_user(
+            username="triage_doc", email="triage_doc@example.com", password="x", role=User.Role.DOCTOR
+        )
+        self.receptionist = User.objects.create_user(
+            username="triage_recep", email="triage_recep@example.com", password="x", role=User.Role.RECEPTIONIST
+        )
+        self.admin = User.objects.create_user(
+            username="triage_admin", email="triage_admin@example.com", password="x", role=User.Role.ADMIN
+        )
 
     def test_patient_assess_persists_rule_based_result_even_without_ai(self):
         self.client.force_authenticate(self.patient_user)
@@ -112,9 +145,7 @@ class TriageAssessAPITests(APITestCase):
 
         self.client.force_authenticate(self.patient_user)
         with patch("triage.llm.requests.post", side_effect=ConnectionError("Ollama unreachable")):
-            resp = self.client.post(
-                "/api/triage/assess/", {"symptoms_text": "fever", "use_ai_summary": True}, format="json"
-            )
+            resp = self.client.post("/api/triage/assess/", {"symptoms_text": "fever", "use_ai_summary": True}, format="json")
         self.assertEqual(resp.status_code, 201, resp.data)
         # Rule-based urgency ("fever" alone, weight 2, below MODERATE_THRESHOLD) is always returned even though the LLM failed.
         self.assertEqual(resp.data["urgency"], "low")
@@ -129,9 +160,7 @@ class TriageAssessAPITests(APITestCase):
 
         self.client.force_authenticate(self.patient_user)
         with patch("triage.views.generate_ai_summary_task.delay") as mock_delay:
-            resp = self.client.post(
-                "/api/triage/assess/", {"symptoms_text": "fever", "use_ai_summary": True}, format="json"
-            )
+            resp = self.client.post("/api/triage/assess/", {"symptoms_text": "fever", "use_ai_summary": True}, format="json")
         self.assertEqual(resp.status_code, 201, resp.data)
         mock_delay.assert_called_once_with(resp.data["id"])
         # Without the (mocked-away) task ever running, the summary must still be unset/pending — proving
@@ -145,9 +174,7 @@ class TriageAssessAPITests(APITestCase):
         with patch("triage.llm.requests.post") as mock_post:
             mock_post.return_value.raise_for_status.return_value = None
             mock_post.return_value.json.return_value = {"response": "Patient reports mild fever."}
-            resp = self.client.post(
-                "/api/triage/assess/", {"symptoms_text": "fever", "use_ai_summary": True}, format="json"
-            )
+            resp = self.client.post("/api/triage/assess/", {"symptoms_text": "fever", "use_ai_summary": True}, format="json")
         self.assertEqual(resp.status_code, 201, resp.data)
         self.assertEqual(resp.data["ai_summary_status"], "ready")
         self.assertEqual(resp.data["ai_summary"], "Patient reports mild fever.")
@@ -185,8 +212,11 @@ class TriageAssessAPITests(APITestCase):
 
         doctor = Doctor.objects.filter(user=self.doctor_user).first()
         appointment = Appointment.objects.create(
-            patient=self.patient, doctor=doctor, appointment_date=datetime.date.today(),
-            slot_start_time=datetime.time(9, 0), slot_end_time=datetime.time(9, 20),
+            patient=self.patient,
+            doctor=doctor,
+            appointment_date=datetime.date.today(),
+            slot_start_time=datetime.time(9, 0),
+            slot_end_time=datetime.time(9, 20),
         )
         self.client.force_authenticate(self.patient_user)
         create_resp = self.client.post(
@@ -235,8 +265,12 @@ class EmergencyGuidanceTests(APITestCase):
     def setUp(self):
         from accounts.models import User
 
-        self.admin = User.objects.create_user(username="eg_admin", email="eg_admin@example.com", password="x", role=User.Role.ADMIN)
-        self.patient = User.objects.create_user(username="eg_pat", email="eg_pat@example.com", password="x", role=User.Role.PATIENT)
+        self.admin = User.objects.create_user(
+            username="eg_admin", email="eg_admin@example.com", password="x", role=User.Role.ADMIN
+        )
+        self.patient = User.objects.create_user(
+            username="eg_pat", email="eg_pat@example.com", password="x", role=User.Role.PATIENT
+        )
 
     def test_admin_can_create_emergency_guidance(self):
         self.client.force_authenticate(self.admin)

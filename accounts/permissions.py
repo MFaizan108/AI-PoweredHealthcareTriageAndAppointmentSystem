@@ -10,9 +10,7 @@ class IsRole(BasePermission):
 
     def has_permission(self, request, view):
         return bool(
-            request.user
-            and request.user.is_authenticated
-            and (request.user.role == self.role or request.user.is_superuser)
+            request.user and request.user.is_authenticated and (request.user.role == self.role or request.user.is_superuser)
         )
 
 
@@ -41,8 +39,5 @@ class IsAdminOrReceptionist(BasePermission):
         return bool(
             request.user
             and request.user.is_authenticated
-            and (
-                request.user.role in (User.Role.ADMIN, User.Role.RECEPTIONIST)
-                or request.user.is_superuser
-            )
+            and (request.user.role in (User.Role.ADMIN, User.Role.RECEPTIONIST) or request.user.is_superuser)
         )

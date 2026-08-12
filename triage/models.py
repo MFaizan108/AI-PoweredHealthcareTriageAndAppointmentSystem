@@ -129,7 +129,9 @@ class TriageAssessment(models.Model):
     ai_provider_used = models.CharField(max_length=20, blank=True)
     ai_summary_error = models.CharField(max_length=255, blank=True)
     ai_summary_status = models.CharField(
-        max_length=20, choices=AISummaryStatus.choices, default=AISummaryStatus.NOT_REQUESTED,
+        max_length=20,
+        choices=AISummaryStatus.choices,
+        default=AISummaryStatus.NOT_REQUESTED,
         help_text="The rule-based result above is always immediate; the AI summary is generated in the "
         "background (Celery) so a slow/unreachable LLM never blocks the triage response.",
     )

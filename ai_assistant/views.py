@@ -20,6 +20,7 @@ class AskResponseSerializer(serializers.Serializer):
     provider_used = serializers.CharField(allow_blank=True)
     error = serializers.CharField(allow_blank=True)
 
+
 SYSTEM_PROMPT = (
     "You are a helpful hospital patient assistant. Answer ONLY using the CONTEXT provided below "
     "(the patient's own appointments/prescriptions/lab tests and relevant hospital FAQs). "
@@ -65,22 +66,26 @@ class AssistantAskView(APIView):
         # LLM
         response_text, provider_used, error = ask_llm(SYSTEM_PROMPT, prompt)
         if response_text is None:
-            response_text = (
-                "Sorry, the assistant is temporarily unavailable. Please contact the reception desk for help."
-            )
+            response_text = "Sorry, the assistant is temporarily unavailable. Please contact the reception desk for help."
 
         AssistantQueryLog.objects.create(
-            user=request.user, message=message, retrieved_context=context,
-            response=response_text, provider_used=provider_used or "",
+            user=request.user,
+            message=message,
+            retrieved_context=context,
+            response=response_text,
+            provider_used=provider_used or "",
         )
 
         return Response({"response": response_text, "provider_used": provider_used or "", "error": error or ""})
 
 
 @extend_schema_view(
-    list=extend_schema(tags=["AI Assistant"]), retrieve=extend_schema(tags=["AI Assistant"]),
-    create=extend_schema(tags=["AI Assistant"]), update=extend_schema(tags=["AI Assistant"]),
-    partial_update=extend_schema(tags=["AI Assistant"]), destroy=extend_schema(tags=["AI Assistant"]),
+    list=extend_schema(tags=["AI Assistant"]),
+    retrieve=extend_schema(tags=["AI Assistant"]),
+    create=extend_schema(tags=["AI Assistant"]),
+    update=extend_schema(tags=["AI Assistant"]),
+    partial_update=extend_schema(tags=["AI Assistant"]),
+    destroy=extend_schema(tags=["AI Assistant"]),
 )
 class HospitalFAQViewSet(viewsets.ModelViewSet):
     """Admin manages FAQ content; any authenticated user can read it. Used as retrieval context for the assistant."""

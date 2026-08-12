@@ -12,16 +12,20 @@ class AuditLog(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="audit_logs"
     )
-    username_attempted = models.CharField(max_length=150, blank=True, help_text="Set for failed logins where no user object is available.")
+    username_attempted = models.CharField(
+        max_length=150, blank=True, help_text="Set for failed logins where no user object is available."
+    )
     action = models.CharField(max_length=20, choices=Action.choices, default=Action.REQUEST)
     method = models.CharField(max_length=10, blank=True)
     path = models.CharField(max_length=500, blank=True)
     object_id = models.CharField(
-        max_length=50, blank=True,
+        max_length=50,
+        blank=True,
         help_text="Best-effort — the trailing numeric ID in the URL path (e.g. '42' for /api/appointments/42/).",
     )
     changes = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         help_text="The submitted request body for this mutation, with sensitive fields "
         "(password/token/otp_code/api keys/...) redacted. Captures intent, not a computed diff.",
     )

@@ -37,7 +37,17 @@ class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
         fields = [
-            "id", "user", "user_id", "department", "department_name", "specialization", "qualification",
-            "license_number", "experience_years", "consultation_fee", "bio", "is_active",
+            "id",
+            "user",
+            "user_id",
+            "department",
+            "department_name",
+            "specialization",
+            "qualification",
+            "license_number",
+            "experience_years",
+            "consultation_fee",
+            "bio",
+            "is_active",
         ]
         read_only_fields = ["id"]

@@ -20,9 +20,7 @@ class LabTest(models.Model):
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="lab_tests")
     requested_by = models.ForeignKey(Doctor, on_delete=models.SET_NULL, null=True, related_name="requested_lab_tests")
-    appointment = models.ForeignKey(
-        Appointment, on_delete=models.SET_NULL, null=True, blank=True, related_name="lab_tests"
-    )
+    appointment = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True, blank=True, related_name="lab_tests")
     test_name = models.CharField(max_length=200)
     notes = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.REQUESTED)
@@ -42,11 +40,15 @@ class LabTest(models.Model):
 class LabReport(models.Model):
     lab_test = models.OneToOneField(LabTest, on_delete=models.CASCADE, related_name="report")
     report_file = models.FileField(
-        upload_to="lab_reports/%Y/%m/", blank=True, null=True,
+        upload_to="lab_reports/%Y/%m/",
+        blank=True,
+        null=True,
         validators=[FileExtensionValidator(ALLOWED_REPORT_EXTENSIONS), MaxFileSizeValidator(10)],
     )
     result_summary = models.TextField(blank=True)
-    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="uploaded_lab_reports")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="uploaded_lab_reports"
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     reviewed_by_doctor = models.BooleanField(default=False)
     reviewed_at = models.DateTimeField(null=True, blank=True)

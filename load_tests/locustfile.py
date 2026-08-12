@@ -24,6 +24,7 @@ file is meant to characterize.
 Safe to point at a scratch/dev database only — creates real Appointment/TriageAssessment/
 AssistantQueryLog rows for every simulated user.
 """
+
 import os
 import random
 
@@ -43,10 +44,11 @@ def _seed_reference_data():
     JWTs minted directly (bypassing the throttled HTTP register/login endpoints, on purpose)."""
     import datetime
 
+    from rest_framework_simplejwt.tokens import RefreshToken
+
     from accounts.models import User
     from departments.models import Department
     from doctors.models import Doctor, DoctorAvailability
-    from rest_framework_simplejwt.tokens import RefreshToken
     from triage.models import Symptom
 
     dept, _ = Department.objects.get_or_create(name="Load Test Department")
@@ -65,19 +67,22 @@ def _seed_reference_data():
 
     for weekday in range(7):
         DoctorAvailability.objects.get_or_create(
-            doctor=doctor, weekday=weekday,
+            doctor=doctor,
+            weekday=weekday,
             defaults={"start_time": datetime.time(8, 0), "end_time": datetime.time(20, 0), "slot_duration_minutes": 10},
         )
 
     Symptom.objects.get_or_create(
-        name="Load Test Fever", defaults={"keywords": "fever, high temperature", "severity_weight": 2, "suggested_department": dept},
+        name="Load Test Fever",
+        defaults={"keywords": "fever, high temperature", "severity_weight": 2, "suggested_department": dept},
     )
 
     tokens = []
     for i in range(USER_POOL_SIZE):
         username = f"loadtest_patient_{i}"
         user, created = User.objects.get_or_create(
-            username=username, defaults={"email": f"{username}@example.com", "role": User.Role.PATIENT},
+            username=username,
+            defaults={"email": f"{username}@example.com", "role": User.Role.PATIENT},
         )
         if created:
             user.set_password("LoadTestPass123!")
@@ -108,7 +113,8 @@ class PatientJourney(HttpUser):
         date_str = _next_weekday_str()
         self.client.get(
             f"/api/appointments/available-slots/?doctor={self.doctor_id}&date={date_str}",
-            headers=self.headers, name="/api/appointments/available-slots/",
+            headers=self.headers,
+            name="/api/appointments/available-slots/",
         )
 
     @task(2)
@@ -116,7 +122,8 @@ class PatientJourney(HttpUser):
         date_str = _next_weekday_str()
         slots_resp = self.client.get(
             f"/api/appointments/available-slots/?doctor={self.doctor_id}&date={date_str}",
-            headers=self.headers, name="/api/appointments/available-slots/",
+            headers=self.headers,
+            name="/api/appointments/available-slots/",
         )
         if slots_resp.status_code != 200:
             return
@@ -126,8 +133,14 @@ class PatientJourney(HttpUser):
         slot = random.choice(available)
         self.client.post(
             "/api/appointments/",
-            {"doctor": self.doctor_id, "appointment_date": date_str, "slot_start_time": slot["start_time"], "reason": "Load test visit"},
-            headers=self.headers, name="/api/appointments/ [POST]",
+            {
+                "doctor": self.doctor_id,
+                "appointment_date": date_str,
+                "slot_start_time": slot["start_time"],
+                "reason": "Load test visit",
+            },
+            headers=self.headers,
+            name="/api/appointments/ [POST]",
         )
 
     @task(3)
@@ -135,7 +148,8 @@ class PatientJourney(HttpUser):
         self.client.post(
             "/api/triage/assess/",
             {"symptoms_text": "I have a fever and feel tired.", "use_ai_summary": False},
-            headers=self.headers, name="/api/triage/assess/",
+            headers=self.headers,
+            name="/api/triage/assess/",
         )
 
     @task(1)
@@ -143,7 +157,8 @@ class PatientJourney(HttpUser):
         self.client.post(
             "/api/ai-assistant/ask/",
             {"message": "When is my next appointment?"},
-            headers=self.headers, name="/api/ai-assistant/ask/",
+            headers=self.headers,
+            name="/api/ai-assistant/ask/",
         )
 
 

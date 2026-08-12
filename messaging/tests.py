@@ -5,9 +5,9 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import User
+from appointments.models import Appointment
 from departments.models import Department
 from doctors.models import Doctor
-from appointments.models import Appointment
 from patients.models import Patient
 
 
@@ -31,8 +31,11 @@ class MessagingPermissionTests(APITestCase):
         )
 
         self.appointment = Appointment.objects.create(
-            patient=self.patient, doctor=self.doctor, appointment_date=datetime.date.today(),
-            slot_start_time=datetime.time(10, 0), slot_end_time=datetime.time(10, 20),
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=datetime.date.today(),
+            slot_start_time=datetime.time(10, 0),
+            slot_end_time=datetime.time(10, 20),
         )
 
     def test_patient_can_message_their_appointment_doctor(self):
@@ -58,7 +61,8 @@ class MessagingPermissionTests(APITestCase):
         self.client.force_authenticate(self.patient_user)
         bad_file = SimpleUploadedFile("script.sh", b"#!/bin/sh\necho hi", content_type="application/octet-stream")
         resp = self.client.post(
-            "/api/messages/", {"appointment": self.appointment.id, "body": "See attached", "attachment": bad_file},
+            "/api/messages/",
+            {"appointment": self.appointment.id, "body": "See attached", "attachment": bad_file},
             format="multipart",
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -67,7 +71,8 @@ class MessagingPermissionTests(APITestCase):
         self.client.force_authenticate(self.patient_user)
         good_file = SimpleUploadedFile("scan.jpg", b"fake jpeg bytes", content_type="image/jpeg")
         resp = self.client.post(
-            "/api/messages/", {"appointment": self.appointment.id, "body": "See attached", "attachment": good_file},
+            "/api/messages/",
+            {"appointment": self.appointment.id, "body": "See attached", "attachment": good_file},
             format="multipart",
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)

@@ -10,7 +10,9 @@ from .serializers import NotificationSerializer
 class NotificationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """Read-only for clients — notifications are created internally by the system."""
 
-    queryset = Notification.objects.all()  # class-level attribute for schema introspection; get_queryset() below scopes it at runtime
+    queryset = (
+        Notification.objects.all()
+    )  # class-level attribute for schema introspection; get_queryset() below scopes it at runtime
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
 

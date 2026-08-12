@@ -1,0 +1,7 @@
+# CI/local dev tooling only — not installed in the production image (see Dockerfile, which
+# installs only requirements.txt). Keep separate so linters/scanners never ship to production.
+-r requirements.txt
+
+ruff==0.16.2
+black==26.5.1
+pip-audit==2.10.1

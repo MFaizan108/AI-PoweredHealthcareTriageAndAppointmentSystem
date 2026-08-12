@@ -10,8 +10,16 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id", "username", "email", "first_name", "last_name", "role", "phone_number",
-            "is_2fa_enabled", "email_verified", "date_joined",
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "role",
+            "phone_number",
+            "is_2fa_enabled",
+            "email_verified",
+            "date_joined",
         ]
         read_only_fields = ["id", "role", "is_2fa_enabled", "email_verified", "date_joined"]
 
@@ -33,7 +41,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 from .recovery_codes import consume_recovery_code
 
                 if not consume_recovery_code(self.user, recovery_code):
-                    raise serializers.ValidationError({"recovery_code": "Invalid or already-used recovery code."}, code="recovery_code_invalid")
+                    raise serializers.ValidationError(
+                        {"recovery_code": "Invalid or already-used recovery code."}, code="recovery_code_invalid"
+                    )
             elif otp_code:
                 totp = pyotp.TOTP(self.user.otp_secret)
                 if not totp.verify(otp_code, valid_window=1):

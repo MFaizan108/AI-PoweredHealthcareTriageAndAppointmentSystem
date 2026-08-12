@@ -5,6 +5,7 @@ Purely a language-summarization aid. It never sets urgency or department —
 those come exclusively from the Layer 1 rule engine. If the LLM is disabled,
 unreachable, or errors out, triage still returns a complete result.
 """
+
 import logging
 
 import requests

@@ -7,7 +7,7 @@ from rest_framework.test import APITestCase
 from accounts.models import User
 from patients.models import Patient
 
-from .models import Invoice, Payment
+from .models import Invoice
 
 
 class InvoiceTotalTests(TestCase):
@@ -15,8 +15,11 @@ class InvoiceTotalTests(TestCase):
         patient_user = User.objects.create_user(username="p1", email="p1@example.com", password="x", role=User.Role.PATIENT)
         patient = Patient.objects.get(user=patient_user)
         invoice = Invoice.objects.create(
-            patient=patient, description="Consultation", consultation_fee=Decimal("1500.00"),
-            lab_charges=Decimal("500.00"), discount=Decimal("200.00"),
+            patient=patient,
+            description="Consultation",
+            consultation_fee=Decimal("1500.00"),
+            lab_charges=Decimal("500.00"),
+            discount=Decimal("200.00"),
         )
         self.assertEqual(invoice.total_amount, Decimal("1800.00"))
 
@@ -24,7 +27,10 @@ class InvoiceTotalTests(TestCase):
         patient_user = User.objects.create_user(username="p2", email="p2@example.com", password="x", role=User.Role.PATIENT)
         patient = Patient.objects.get(user=patient_user)
         invoice = Invoice.objects.create(
-            patient=patient, description="Consultation", consultation_fee=Decimal("100.00"), discount=Decimal("500.00"),
+            patient=patient,
+            description="Consultation",
+            consultation_fee=Decimal("100.00"),
+            discount=Decimal("500.00"),
         )
         self.assertEqual(invoice.total_amount, Decimal("0.00"))
 

@@ -13,9 +13,11 @@ def send_appointment_reminders():
     from .models import Appointment
 
     tomorrow = timezone.localdate() + timedelta(days=1)
-    due = Appointment.objects.filter(
-        appointment_date=tomorrow, reminder_sent=False
-    ).exclude(status=Appointment.Status.CANCELLED).select_related("patient__user", "doctor__user")
+    due = (
+        Appointment.objects.filter(appointment_date=tomorrow, reminder_sent=False)
+        .exclude(status=Appointment.Status.CANCELLED)
+        .select_related("patient__user", "doctor__user")
+    )
 
     sent = 0
     for appointment in due:

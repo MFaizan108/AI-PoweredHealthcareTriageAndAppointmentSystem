@@ -1,13 +1,59 @@
 name: CI
 
+# Pipeline shape: Lint -> Tests -> Security -> Docker Build. Each stage is a separate job so a
+# lint failure fails fast without waiting for the (much slower) test services to spin up, and the
+# GitHub Actions UI shows exactly which stage broke rather than one monolithic job's tail log.
+#
+# Deploy is intentionally not a job here: there is no deployment target/secrets configured for
+# this repo yet (see docs/deployment.md — production is a manually-run `docker compose --profile
+# production up` on a host you control). Wiring an automated CD step would mean fabricating
+# infrastructure that doesn't exist; see docs/cicd.md for what's needed before that's added.
+
 on:
   push:
     branches: ["main"]
   pull_request:
     branches: ["main"]
 
+env:
+  PYTHON_VERSION: "3.13"
+  NODE_VERSION: "22"
+
 jobs:
-  test:
+  lint-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: ruff (lint + import order)
+        run: python -m ruff check .
+      - name: black (formatting)
+        run: python -m black --check .
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: oxlint
+        run: npm run lint
+      - name: npm audit (production dependencies only)
+        run: npm audit --omit=dev
+
+  backend-tests:
+    needs: [lint-backend]
     runs-on: ubuntu-latest
 
     services:
@@ -52,7 +98,8 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -60,5 +107,57 @@ jobs:
       - name: Django system check
         run: python manage.py check
 
+      - name: Migration check (no model change left un-migrated)
+        run: python manage.py makemigrations --check --dry-run
+
       - name: Run test suite
         run: python manage.py test
+
+  frontend-build:
+    needs: [lint-frontend]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Type-check + production build
+        run: npm run build
+
+  security:
+    needs: [backend-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: pip-audit (known CVEs in dependencies)
+        run: python -m pip_audit -r requirements.txt
+      - name: Django deployment security checklist
+        env:
+          # Deliberately not the production secret — this job never boots the app against real
+          # data, it just runs `check --deploy`'s static analysis of settings.py. A throwaway key
+          # does trip the "SECRET_KEY looks auto-generated" warning below, which is expected and
+          # non-fatal (check --deploy only exits non-zero on an actual ERROR-level finding).
+          DJANGO_SECRET_KEY: ci-deploy-check-throwaway-key-not-for-production-use-only
+          DJANGO_DEBUG: "False"
+        run: python manage.py check --deploy
+
+  docker-build:
+    needs: [backend-tests, frontend-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -t healthcare-backend:ci .
+      - name: Build frontend image
+        run: docker build -t healthcare-frontend:ci ./frontend

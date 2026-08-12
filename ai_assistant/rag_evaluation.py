@@ -11,6 +11,7 @@ LLM quality — that's what triage/llm_evaluation.py measures separately.
 Runs inside a transaction that is always rolled back, so this never leaves data behind
 regardless of what's already in the database (safe to run against a real/demo DB).
 """
+
 import datetime
 from contextlib import contextmanager
 from unittest.mock import patch
@@ -48,24 +49,38 @@ def _build_fixture():
     from patients.models import Patient
 
     dept = Department.objects.create(name="RAG Eval Dept")
-    doctor_user = User.objects.create_user(username="rageval_doc", email="rageval_doc@example.com", password="x", role=User.Role.DOCTOR)
+    doctor_user = User.objects.create_user(
+        username="rageval_doc", email="rageval_doc@example.com", password="x", role=User.Role.DOCTOR
+    )
     doctor = Doctor.objects.filter(user=doctor_user).first()
     doctor.department = dept
     doctor.save()
 
-    patient_a_user = User.objects.create_user(username="rageval_pat_a", email="rageval_pat_a@example.com", password="x", role=User.Role.PATIENT)
+    patient_a_user = User.objects.create_user(
+        username="rageval_pat_a", email="rageval_pat_a@example.com", password="x", role=User.Role.PATIENT
+    )
     patient_a = Patient.objects.get(user=patient_a_user)
-    patient_b_user = User.objects.create_user(username="rageval_pat_b", email="rageval_pat_b@example.com", password="x", role=User.Role.PATIENT)
+    patient_b_user = User.objects.create_user(
+        username="rageval_pat_b", email="rageval_pat_b@example.com", password="x", role=User.Role.PATIENT
+    )
     patient_b = Patient.objects.get(user=patient_b_user)
 
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     Appointment.objects.create(
-        patient=patient_a, doctor=doctor, appointment_date=tomorrow,
-        slot_start_time=datetime.time(9, 0), slot_end_time=datetime.time(9, 20), token_number=PATIENT_A_TOKEN,
+        patient=patient_a,
+        doctor=doctor,
+        appointment_date=tomorrow,
+        slot_start_time=datetime.time(9, 0),
+        slot_end_time=datetime.time(9, 20),
+        token_number=PATIENT_A_TOKEN,
     )
     Appointment.objects.create(
-        patient=patient_b, doctor=doctor, appointment_date=tomorrow,
-        slot_start_time=datetime.time(9, 20), slot_end_time=datetime.time(9, 40), token_number=PATIENT_B_TOKEN,
+        patient=patient_b,
+        doctor=doctor,
+        appointment_date=tomorrow,
+        slot_start_time=datetime.time(9, 20),
+        slot_end_time=datetime.time(9, 40),
+        token_number=PATIENT_B_TOKEN,
     )
     return patient_a_user
 
@@ -89,12 +104,11 @@ def run_rag_evaluation():
         # Outside `manage.py test`, Django's own test-environment setup (which normally adds
         # "testserver" to ALLOWED_HOSTS) hasn't run — without this override, APIClient's requests
         # are rejected by CommonMiddleware's host check before ever reaching the view.
-        with override_settings(ALLOWED_HOSTS=[*settings.ALLOWED_HOSTS, "testserver"]), patch(
-            "ai_assistant.views.ask_llm", return_value=("Mock assistant response.", "ollama", None)
+        with (
+            override_settings(ALLOWED_HOSTS=[*settings.ALLOWED_HOSTS, "testserver"]),
+            patch("ai_assistant.views.ask_llm", return_value=("Mock assistant response.", "ollama", None)),
         ):
-            deny_resp, deny_log = _ask_as(
-                client, patient_a_user, f"Can you tell me about appointment token {PATIENT_B_TOKEN}?"
-            )
+            deny_resp, deny_log = _ask_as(client, patient_a_user, f"Can you tell me about appointment token {PATIENT_B_TOKEN}?")
             allow_resp, allow_log = _ask_as(client, patient_a_user, "What is my next appointment?")
 
         deny_leaked = bool(deny_log) and PATIENT_B_TOKEN in deny_log.retrieved_context
@@ -105,7 +119,11 @@ def run_rag_evaluation():
                 "expected": "DENY",
                 "actual": "ALLOW (LEAK)" if deny_leaked else "DENY",
                 "passed": deny_resp.status_code == 200 and not deny_leaked,
-                "detail": "Patient B's data was excluded from the retrieved context." if not deny_leaked else "Patient B's data leaked into the retrieved context.",
+                "detail": (
+                    "Patient B's data was excluded from the retrieved context."
+                    if not deny_leaked
+                    else "Patient B's data leaked into the retrieved context."
+                ),
             }
         )
 
@@ -117,7 +135,11 @@ def run_rag_evaluation():
                 "expected": "ALLOW",
                 "actual": "ALLOW" if allow_present else "DENY (unexpected)",
                 "passed": allow_resp.status_code == 200 and allow_present,
-                "detail": "Patient A's own appointment was included in the retrieved context." if allow_present else "Patient A's own appointment was unexpectedly missing.",
+                "detail": (
+                    "Patient A's own appointment was included in the retrieved context."
+                    if allow_present
+                    else "Patient A's own appointment was unexpectedly missing."
+                ),
             }
         )
     return results

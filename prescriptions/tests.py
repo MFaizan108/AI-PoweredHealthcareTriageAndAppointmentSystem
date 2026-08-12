@@ -1,5 +1,3 @@
-import datetime
-
 from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -11,23 +9,33 @@ from patients.models import Patient
 
 from .models import Prescription
 
-TEST_OVERRIDES = dict(CELERY_TASK_ALWAYS_EAGER=True, MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}})
+TEST_OVERRIDES = dict(
+    CELERY_TASK_ALWAYS_EAGER=True, MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}}
+)
 
 
 @override_settings(**TEST_OVERRIDES)
 class PrescriptionTests(APITestCase):
     def setUp(self):
         dept = Department.objects.create(name="Endocrinology")
-        self.doctor_user = User.objects.create_user(username="rx_doc", email="rx_doc@example.com", password="x", role=User.Role.DOCTOR)
+        self.doctor_user = User.objects.create_user(
+            username="rx_doc", email="rx_doc@example.com", password="x", role=User.Role.DOCTOR
+        )
         self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
         self.doctor.department = dept
         self.doctor.save()
 
-        self.patient_user = User.objects.create_user(username="rx_pat", email="rx_pat@example.com", password="x", role=User.Role.PATIENT)
+        self.patient_user = User.objects.create_user(
+            username="rx_pat", email="rx_pat@example.com", password="x", role=User.Role.PATIENT
+        )
         self.patient = Patient.objects.get(user=self.patient_user)
 
-        self.other_patient_user = User.objects.create_user(username="rx_pat2", email="rx_pat2@example.com", password="x", role=User.Role.PATIENT)
-        self.lab_staff = User.objects.create_user(username="rx_lab", email="rx_lab@example.com", password="x", role=User.Role.LAB_STAFF)
+        self.other_patient_user = User.objects.create_user(
+            username="rx_pat2", email="rx_pat2@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.lab_staff = User.objects.create_user(
+            username="rx_lab", email="rx_lab@example.com", password="x", role=User.Role.LAB_STAFF
+        )
 
         self.prescription = Prescription.objects.create(patient=self.patient, doctor=self.doctor, notes="Take with food.")
 
@@ -85,5 +93,7 @@ class PrescriptionTests(APITestCase):
         self.client.force_authenticate(self.doctor_user)
         self.client.post("/api/prescriptions/", {"patient": self.patient.id, "notes": "New Rx"})
         self.assertTrue(
-            Notification.objects.filter(recipient=self.patient_user, notification_type=Notification.NotificationType.PRESCRIPTION_AVAILABLE).exists()
+            Notification.objects.filter(
+                recipient=self.patient_user, notification_type=Notification.NotificationType.PRESCRIPTION_AVAILABLE
+            ).exists()
         )

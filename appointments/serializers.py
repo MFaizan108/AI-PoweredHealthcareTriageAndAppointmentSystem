@@ -16,9 +16,20 @@ class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
         fields = [
-            "id", "patient", "patient_detail", "doctor", "doctor_detail", "appointment_date",
-            "slot_start_time", "slot_end_time", "status", "reason", "token_number",
-            "booked_by", "created_at", "updated_at",
+            "id",
+            "patient",
+            "patient_detail",
+            "doctor",
+            "doctor_detail",
+            "appointment_date",
+            "slot_start_time",
+            "slot_end_time",
+            "status",
+            "reason",
+            "token_number",
+            "booked_by",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["id", "slot_end_time", "token_number", "booked_by", "created_at", "updated_at"]
         extra_kwargs = {"patient": {"required": False}}

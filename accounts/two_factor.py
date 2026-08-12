@@ -33,7 +33,9 @@ class TwoFactorSetupView(APIView):
         user.is_2fa_enabled = False
         user.save(update_fields=["otp_secret", "is_2fa_enabled"])
 
-        provisioning_uri = pyotp.TOTP(secret).provisioning_uri(name=user.email or user.username, issuer_name="AI Healthcare Triage")
+        provisioning_uri = pyotp.TOTP(secret).provisioning_uri(
+            name=user.email or user.username, issuer_name="AI Healthcare Triage"
+        )
         return Response({"secret": secret, "provisioning_uri": provisioning_uri})
 
 
@@ -54,7 +56,12 @@ class TwoFactorEnableResponseSerializer(serializers.Serializer):
     )
 
 
-@extend_schema(tags=["Accounts"], request=TwoFactorEnableSerializer, responses=TwoFactorEnableResponseSerializer, description="Confirms a TOTP code from an authenticator app, turns 2FA on, and issues one-time recovery codes (shown only in this response).")
+@extend_schema(
+    tags=["Accounts"],
+    request=TwoFactorEnableSerializer,
+    responses=TwoFactorEnableResponseSerializer,
+    description="Confirms a TOTP code from an authenticator app, turns 2FA on, and issues one-time recovery codes (shown only in this response).",
+)
 class TwoFactorEnableView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -76,7 +83,12 @@ class TwoFactorEnableView(APIView):
         return Response({"is_2fa_enabled": True, "recovery_codes": recovery_codes})
 
 
-@extend_schema(tags=["Accounts"], request=None, responses=TwoFactorEnableResponseSerializer, description="Invalidates all existing recovery codes and issues a fresh batch (shown only in this response). Requires 2FA to already be enabled.")
+@extend_schema(
+    tags=["Accounts"],
+    request=None,
+    responses=TwoFactorEnableResponseSerializer,
+    description="Invalidates all existing recovery codes and issues a fresh batch (shown only in this response). Requires 2FA to already be enabled.",
+)
 class TwoFactorRecoveryCodesRegenerateView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -92,7 +104,12 @@ class TwoFactorDisableSerializer(serializers.Serializer):
     password = serializers.CharField()
 
 
-@extend_schema(tags=["Accounts"], request=TwoFactorDisableSerializer, responses=TwoFactorStatusResponseSerializer, description="Disables 2FA for the current account after confirming the account password.")
+@extend_schema(
+    tags=["Accounts"],
+    request=TwoFactorDisableSerializer,
+    responses=TwoFactorStatusResponseSerializer,
+    description="Disables 2FA for the current account after confirming the account password.",
+)
 class TwoFactorDisableView(APIView):
     permission_classes = [IsAuthenticated]
 

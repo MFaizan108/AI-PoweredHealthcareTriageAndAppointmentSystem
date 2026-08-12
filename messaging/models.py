@@ -14,7 +14,9 @@ class Message(models.Model):
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="received_messages")
     body = models.TextField(blank=True)
     attachment = models.FileField(
-        upload_to="message_attachments/%Y/%m/", blank=True, null=True,
+        upload_to="message_attachments/%Y/%m/",
+        blank=True,
+        null=True,
         validators=[FileExtensionValidator(ALLOWED_ATTACHMENT_EXTENSIONS), MaxFileSizeValidator(10)],
     )
     is_read = models.BooleanField(default=False)

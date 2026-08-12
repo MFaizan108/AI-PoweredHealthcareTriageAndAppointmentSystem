@@ -7,21 +7,29 @@ from accounts.models import User
 
 from .models import AuditLog
 
-TEST_OVERRIDES = dict(CELERY_TASK_ALWAYS_EAGER=True, MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}})
+TEST_OVERRIDES = dict(
+    CELERY_TASK_ALWAYS_EAGER=True, MAILERS={"default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}}
+)
 
 
 @override_settings(**TEST_OVERRIDES)
 class AuditLogMiddlewareTests(APITestCase):
     def setUp(self):
         cache.clear()
-        self.admin = User.objects.create_user(username="audit_admin", email="audit_admin@example.com", password="x", role=User.Role.ADMIN)
-        self.patient = User.objects.create_user(username="audit_pat", email="audit_pat@example.com", password="x", role=User.Role.PATIENT)
+        self.admin = User.objects.create_user(
+            username="audit_admin", email="audit_admin@example.com", password="x", role=User.Role.ADMIN
+        )
+        self.patient = User.objects.create_user(
+            username="audit_pat", email="audit_pat@example.com", password="x", role=User.Role.PATIENT
+        )
 
     def test_mutating_request_is_logged(self):
         self.client.force_authenticate(self.patient)
         self.client.post("/api/departments/", {"name": "Should Fail But Still Logged"})
         self.assertTrue(
-            AuditLog.objects.filter(user=self.patient, action=AuditLog.Action.REQUEST, method="POST", path="/api/departments/").exists()
+            AuditLog.objects.filter(
+                user=self.patient, action=AuditLog.Action.REQUEST, method="POST", path="/api/departments/"
+            ).exists()
         )
 
     def test_get_request_is_not_logged(self):
@@ -60,7 +68,12 @@ class AuditLogMiddlewareTests(APITestCase):
         self.client.force_authenticate(self.admin)
         self.client.post(
             "/api/accounts/staff/create/",
-            {"username": "newstaffmember", "email": "newstaffmember@example.com", "password": "SuperSecret123!", "role": "doctor"},
+            {
+                "username": "newstaffmember",
+                "email": "newstaffmember@example.com",
+                "password": "SuperSecret123!",
+                "role": "doctor",
+            },
             format="json",
         )
         entry = AuditLog.objects.filter(method="POST", path="/api/accounts/staff/create/").first()
@@ -72,9 +85,15 @@ class AuditLogMiddlewareTests(APITestCase):
 @override_settings(**TEST_OVERRIDES)
 class AuditLogAccessTests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user(username="audit_admin2", email="audit_admin2@example.com", password="x", role=User.Role.ADMIN)
-        self.patient = User.objects.create_user(username="audit_pat2", email="audit_pat2@example.com", password="x", role=User.Role.PATIENT)
-        self.doctor = User.objects.create_user(username="audit_doc", email="audit_doc@example.com", password="x", role=User.Role.DOCTOR)
+        self.admin = User.objects.create_user(
+            username="audit_admin2", email="audit_admin2@example.com", password="x", role=User.Role.ADMIN
+        )
+        self.patient = User.objects.create_user(
+            username="audit_pat2", email="audit_pat2@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.doctor = User.objects.create_user(
+            username="audit_doc", email="audit_doc@example.com", password="x", role=User.Role.DOCTOR
+        )
 
     def test_admin_can_read_audit_log(self):
         AuditLog.objects.create(action=AuditLog.Action.REQUEST, method="POST", path="/api/x/", status_code=201)

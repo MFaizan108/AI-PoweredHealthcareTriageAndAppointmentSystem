@@ -271,6 +271,16 @@ and the demo-seed command itself.
 
 Frontend type-check: `cd frontend && node ./node_modules/typescript/bin/tsc -b`.
 
+Lint/format (dev-only tooling, not in the production image — `pip install -r requirements-dev.txt`):
+
+```bash
+python -m ruff check .
+python -m black --check .
+```
+
+Full pipeline (lint, tests, security scan, migration check, Docker build) runs on every push/PR —
+see [docs/cicd.md](docs/cicd.md).
+
 ## Demo Accounts
 
 ```bash

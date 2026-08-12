@@ -21,7 +21,12 @@ class PasswordResetDetailResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
 
 
-@extend_schema(tags=["Accounts"], request=PasswordResetRequestSerializer, responses=PasswordResetDetailResponseSerializer, description="Always returns 200 regardless of whether the email exists, to avoid user enumeration.")
+@extend_schema(
+    tags=["Accounts"],
+    request=PasswordResetRequestSerializer,
+    responses=PasswordResetDetailResponseSerializer,
+    description="Always returns 200 regardless of whether the email exists, to avoid user enumeration.",
+)
 class PasswordResetRequestView(APIView):
     """Always returns 200 regardless of whether the email exists, to avoid user enumeration."""
 
@@ -51,7 +56,12 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     new_password = serializers.CharField(validators=[validate_password])
 
 
-@extend_schema(tags=["Accounts"], request=PasswordResetConfirmSerializer, responses=PasswordResetDetailResponseSerializer, description="Consumes the uid/token pair from the reset email and sets a new password.")
+@extend_schema(
+    tags=["Accounts"],
+    request=PasswordResetConfirmSerializer,
+    responses=PasswordResetDetailResponseSerializer,
+    description="Consumes the uid/token pair from the reset email and sets a new password.",
+)
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
 

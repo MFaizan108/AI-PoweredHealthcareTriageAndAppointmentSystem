@@ -11,9 +11,18 @@ OBJECT_ID_PATTERN = re.compile(r"/(\d+)/(?:[a-z0-9-]+/)?$")
 # Never persist these into the audit trail, even redacted-in-place — the log itself must not become
 # a secrets store. Matched case-insensitively against JSON body keys at any nesting depth.
 REDACTED_KEYS = {
-    "password", "new_password", "old_password", "current_password",
-    "otp_code", "recovery_code", "token", "refresh", "access",
-    "groq_api_key", "secret", "otp_secret",
+    "password",
+    "new_password",
+    "old_password",
+    "current_password",
+    "otp_code",
+    "recovery_code",
+    "token",
+    "refresh",
+    "access",
+    "groq_api_key",
+    "secret",
+    "otp_secret",
 }
 
 
@@ -31,10 +40,7 @@ def _extract_object_id(path):
 
 def _redact(value):
     if isinstance(value, dict):
-        return {
-            key: ("***REDACTED***" if key.lower() in REDACTED_KEYS else _redact(val))
-            for key, val in value.items()
-        }
+        return {key: ("***REDACTED***" if key.lower() in REDACTED_KEYS else _redact(val)) for key, val in value.items()}
     if isinstance(value, list):
         return [_redact(item) for item in value]
     return value

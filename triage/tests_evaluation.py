@@ -14,10 +14,16 @@ class RuleEngineEvaluationTests(TestCase):
         failed = [r for r in results if not r["passed"]]
         self.assertEqual(failed, [], f"Evaluation cases failed: {failed}")
         self.assertEqual(summary["accuracy"], 1.0)
-        self.assertEqual({r["id"] for r in results}, {
-            "red_flag_to_emergency", "high_severity_to_high", "multiple_moderate_to_moderate",
-            "low_severity_to_low", "unknown_to_safe_fallback",
-        })
+        self.assertEqual(
+            {r["id"] for r in results},
+            {
+                "red_flag_to_emergency",
+                "high_severity_to_high",
+                "multiple_moderate_to_moderate",
+                "low_severity_to_low",
+                "unknown_to_safe_fallback",
+            },
+        )
 
     def test_unknown_case_matches_no_symptoms(self):
         results = run_rule_engine_evaluation()
@@ -31,18 +37,24 @@ class LLMEvaluationTests(TestCase):
         with patch("triage.llm.requests.post") as mock_post:
             mock_post.return_value.raise_for_status.return_value = None
             mock_post.return_value.json.return_value = {"response": "The patient reports mild symptoms."}
-            metrics = evaluate_provider(AIProviderSettings.Provider.OLLAMA, samples=[
-                {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
-            ])
+            metrics = evaluate_provider(
+                AIProviderSettings.Provider.OLLAMA,
+                samples=[
+                    {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
+                ],
+            )
         self.assertEqual(metrics["success_rate"], 1.0)
         self.assertEqual(metrics["calls"][0]["outcome"], "success")
         self.assertGreaterEqual(metrics["avg_latency_ms"], 0)
 
     def test_connection_failure_is_classified_as_failure(self):
         with patch("triage.llm.requests.post", side_effect=ConnectionError("Connection refused")):
-            metrics = evaluate_provider(AIProviderSettings.Provider.OLLAMA, samples=[
-                {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
-            ])
+            metrics = evaluate_provider(
+                AIProviderSettings.Provider.OLLAMA,
+                samples=[
+                    {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
+                ],
+            )
         self.assertEqual(metrics["failure_rate"], 1.0)
         self.assertEqual(metrics["calls"][0]["outcome"], "failure")
 
@@ -50,9 +62,12 @@ class LLMEvaluationTests(TestCase):
         import requests
 
         with patch("triage.llm.requests.post", side_effect=requests.exceptions.Timeout("Read timed out.")):
-            metrics = evaluate_provider(AIProviderSettings.Provider.OLLAMA, samples=[
-                {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
-            ])
+            metrics = evaluate_provider(
+                AIProviderSettings.Provider.OLLAMA,
+                samples=[
+                    {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
+                ],
+            )
         self.assertEqual(metrics["timeout_rate"], 1.0)
         self.assertEqual(metrics["calls"][0]["outcome"], "timeout")
 
@@ -60,9 +75,12 @@ class LLMEvaluationTests(TestCase):
         with patch("triage.llm.requests.post") as mock_post:
             mock_post.return_value.raise_for_status.return_value = None
             mock_post.return_value.json.return_value = {"response": ""}
-            metrics = evaluate_provider(AIProviderSettings.Provider.OLLAMA, samples=[
-                {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
-            ])
+            metrics = evaluate_provider(
+                AIProviderSettings.Provider.OLLAMA,
+                samples=[
+                    {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
+                ],
+            )
         self.assertEqual(metrics["invalid_response_rate"], 1.0)
         self.assertEqual(metrics["calls"][0]["outcome"], "invalid_response")
 
@@ -70,9 +88,12 @@ class LLMEvaluationTests(TestCase):
         """Probing 'groq' must not require (or mutate) the admin's persisted provider choice —
         it evaluates via an unsaved settings snapshot."""
         self.assertEqual(AIProviderSettings.get_solo().provider, AIProviderSettings.Provider.OLLAMA)
-        metrics = evaluate_provider(AIProviderSettings.Provider.GROQ, samples=[
-            {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
-        ])
+        metrics = evaluate_provider(
+            AIProviderSettings.Provider.GROQ,
+            samples=[
+                {"symptoms_text": "fever", "detected_symptom_names": ["Fever"], "urgency": "low"},
+            ],
+        )
         self.assertEqual(metrics["failure_rate"], 1.0)
         # The real singleton was never touched.
         self.assertEqual(AIProviderSettings.get_solo().provider, AIProviderSettings.Provider.OLLAMA)

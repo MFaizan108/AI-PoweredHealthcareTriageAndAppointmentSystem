@@ -103,9 +103,13 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             )
 
         # A slot just opened up — best-effort notify the first waiting patient for this doctor/date.
-        next_in_line = Waitlist.objects.filter(
-            doctor=appointment.doctor, preferred_date=appointment.appointment_date, status=Waitlist.Status.WAITING
-        ).order_by("created_at").first()
+        next_in_line = (
+            Waitlist.objects.filter(
+                doctor=appointment.doctor, preferred_date=appointment.appointment_date, status=Waitlist.Status.WAITING
+            )
+            .order_by("created_at")
+            .first()
+        )
         if next_in_line:
             next_in_line.status = Waitlist.Status.NOTIFIED
             next_in_line.save(update_fields=["status"])

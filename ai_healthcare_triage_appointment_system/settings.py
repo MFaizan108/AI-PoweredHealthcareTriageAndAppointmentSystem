@@ -18,130 +18,126 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY', 'django-insecure-d@12(r!t$n+#f3j7gv*4p%*kzi(m1=xnus&7m!j090&ubr1*e4'
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-d@12(r!t$n+#f3j7gv*4p%*kzi(m1=xnus&7m!j090&ubr1*e4")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 
 # CORS: no origins are trusted by default (safe default for a backend with no frontend yet — Phase 11).
 # Set CORS_ALLOWED_ORIGINS as a comma-separated list (e.g. "https://app.example.com") when a frontend
 # is added; deliberately never wildcarded (`CORS_ALLOW_ALL_ORIGINS`) since requests carry JWTs.
-CORS_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()]
+CORS_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
 CORS_ALLOW_CREDENTIALS = True
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     # Third-party
-    'corsheaders',
-    'rest_framework',
-    'rest_framework_simplejwt.token_blacklist',
-    'drf_spectacular',
-
+    "corsheaders",
+    "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
     # Local apps
-    'accounts',
-    'departments',
-    'patients',
-    'doctors',
-    'appointments',
-    'medical_records',
-    'prescriptions',
-    'laboratory',
-    'notifications',
-    'triage',
-    'audit_logs',
-    'billing',
-    'messaging',
-    'analytics',
-    'ai_assistant',
-    'health',
+    "accounts",
+    "departments",
+    "patients",
+    "doctors",
+    "appointments",
+    "medical_records",
+    "prescriptions",
+    "laboratory",
+    "notifications",
+    "triage",
+    "audit_logs",
+    "billing",
+    "messaging",
+    "analytics",
+    "ai_assistant",
+    "health",
 ]
 
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     # First middleware in the list = outermost wrapper = measures true end-to-end request time
     # (every other middleware's overhead included) and still sees the final response object/status
     # code on the way back out.
-    'health.metrics.PrometheusMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.middleware.csp.ContentSecurityPolicyMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # must be before CommonMiddleware per django-cors-headers docs
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'audit_logs.middleware.AuditLogMiddleware',
+    "health.metrics.PrometheusMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # must be before CommonMiddleware per django-cors-headers docs
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "audit_logs.middleware.AuditLogMiddleware",
 ]
 
-ROOT_URLCONF = 'ai_healthcare_triage_appointment_system.urls'
+ROOT_URLCONF = "ai_healthcare_triage_appointment_system.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'ai_healthcare_triage_appointment_system.wsgi.application'
+WSGI_APPLICATION = "ai_healthcare_triage_appointment_system.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 # Uses PostgreSQL when POSTGRES_HOST is set (production / Docker), otherwise falls back to SQLite for quick local dev.
 
-if os.environ.get('POSTGRES_HOST'):
+if os.environ.get("POSTGRES_HOST"):
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('POSTGRES_DB', 'healthcare_triage'),
-            'USER': os.environ.get('POSTGRES_USER', 'healthcare_admin'),
-            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
-            'HOST': os.environ.get('POSTGRES_HOST'),
-            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("POSTGRES_DB", "healthcare_triage"),
+            "USER": os.environ.get("POSTGRES_USER", "healthcare_admin"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": os.environ.get("POSTGRES_HOST"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
             # Without this Django opens a brand-new TCP+auth handshake to Postgres on every single
             # request (CONN_MAX_AGE defaults to 0). Under concurrent load that connection setup cost
             # dominates response time — reusing connections for 60s cut booking/slot-lookup latency
             # substantially in local load testing. CONN_HEALTH_CHECKS avoids handing out a connection
             # that died during its idle period.
-            'CONN_MAX_AGE': 60,
-            'CONN_HEALTH_CHECKS': True,
+            "CONN_MAX_AGE": 60,
+            "CONN_HEALTH_CHECKS": True,
         }
     }
 else:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
 
@@ -152,11 +148,11 @@ else:
 # registration/login/password-reset/staff-creation unusably slow under any concurrent load.
 # Existing PBKDF2 hashes (if any) still verify fine and get silently upgraded to Argon2 on next login.
 PASSWORD_HASHERS = [
-    'django.contrib.auth.hashers.Argon2PasswordHasher',
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
-    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
-    'django.contrib.auth.hashers.ScryptPasswordHasher',
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
 ]
 
 
@@ -165,19 +161,19 @@ PASSWORD_HASHERS = [
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
         # Django's own default is 8 — raised for a healthcare app handling patient data, per standard
         # (e.g. OWASP) guidance of >=10 characters when there's no compensating hardware MFA factor.
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {'min_length': 10},
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -185,9 +181,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -197,61 +193,59 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-_email_user = os.environ.get('EMAIL_HOST_USER', '')
-_email_password = os.environ.get('EMAIL_HOST_PASSWORD', '')
-_email_display_name = os.environ.get('EMAIL_HOST_NAME', 'Healthcare')
+_email_user = os.environ.get("EMAIL_HOST_USER", "")
+_email_password = os.environ.get("EMAIL_HOST_PASSWORD", "")
+_email_display_name = os.environ.get("EMAIL_HOST_NAME", "Healthcare")
 
 if _email_user and _email_password:
     MAILERS = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
-            'OPTIONS': {
-                'host': 'smtp.gmail.com',
-                'port': 587,
-                'username': _email_user,
-                'password': _email_password,
-                'use_tls': True,
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": "smtp.gmail.com",
+                "port": 587,
+                "username": _email_user,
+                "password": _email_password,
+                "use_tls": True,
             },
         },
     }
-    DEFAULT_FROM_EMAIL = f'{_email_display_name} <{_email_user}>'
+    DEFAULT_FROM_EMAIL = f"{_email_display_name} <{_email_user}>"
 else:
     MAILERS = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
         },
     }
 
 
 # Django REST Framework
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
     ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-    'DEFAULT_THROTTLE_CLASSES': (
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-    ),
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '30/minute',
-        'user': '120/minute',
-        'login': '5/minute',
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "30/minute",
+        "user": "120/minute",
+        "login": "5/minute",
     },
     # Governs how DRF's throttles derive the client IP from X-Forwarded-For (rest_framework.throttling
     # .SimpleRateThrottle.get_ident). Left unset (None), DRF trusts X-Forwarded-For unconditionally —
@@ -259,89 +253,89 @@ REST_FRAMEWORK = {
     # "trust no proxy hops, always use the direct connection's REMOTE_ADDR" (correct for local dev,
     # where nothing sits in front of Django). In production (DEBUG=False), the Nginx layer from Phase 9
     # adds exactly one real hop, hence 1.
-    'NUM_PROXIES': 0 if DEBUG else 1,
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "NUM_PROXIES": 0 if DEBUG else 1,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 # drf-spectacular (OpenAPI schema / Swagger / ReDoc)
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'AI-Powered Healthcare Triage & Appointment System API',
-    'DESCRIPTION': (
-        'REST API for patient triage, appointment booking, EMR, prescriptions, lab management, '
-        'billing, messaging, and an AI-assisted (rule-based + LLM) triage/assistant pipeline.\n\n'
-        '**Important:** the AI triage/assistant features are preliminary decision-support tools only, '
-        'not a medical diagnosis system. Every AI output carries a disclaimer and must not replace a '
-        'qualified healthcare professional.'
+    "TITLE": "AI-Powered Healthcare Triage & Appointment System API",
+    "DESCRIPTION": (
+        "REST API for patient triage, appointment booking, EMR, prescriptions, lab management, "
+        "billing, messaging, and an AI-assisted (rule-based + LLM) triage/assistant pipeline.\n\n"
+        "**Important:** the AI triage/assistant features are preliminary decision-support tools only, "
+        "not a medical diagnosis system. Every AI output carries a disclaimer and must not replace a "
+        "qualified healthcare professional."
     ),
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'SCHEMA_PATH_PREFIX': r'/api/',
-    'COMPONENT_SPLIT_REQUEST': True,
-    'SORT_OPERATIONS': False,
-    'SWAGGER_UI_SETTINGS': '{"persistAuthorization": true}',
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": r"/api/",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SORT_OPERATIONS": False,
+    "SWAGGER_UI_SETTINGS": '{"persistAuthorization": true}',
     # 'name' must match either the auto-derived tag (the URL segment right after /api/, e.g. 'departments')
     # or an explicit tags=[...] set via @extend_schema on the view (used for Accounts/Triage/Analytics/AI Assistant).
-    'TAGS': [
-        {'name': 'Accounts', 'description': 'Registration, login/2FA, email verification, password reset, staff/user management'},
-        {'name': 'departments', 'description': 'Hospital departments'},
-        {'name': 'patients', 'description': 'Patient profiles'},
-        {'name': 'doctors', 'description': 'Doctor profiles, availability, and leave'},
-        {'name': 'appointments', 'description': 'Booking, queue, waitlist, feedback'},
-        {'name': 'medical-records', 'description': 'EMR entries and diagnoses'},
-        {'name': 'prescriptions', 'description': 'Prescriptions and PDF export'},
-        {'name': 'lab', 'description': 'Lab test requests and reports'},
-        {'name': 'notifications', 'description': 'In-app notifications'},
-        {'name': 'Triage', 'description': 'AI provider settings, symptoms, triage assessment, emergency guidance'},
-        {'name': 'audit-logs', 'description': 'Security/audit trail (admin only)'},
-        {'name': 'billing', 'description': 'Invoices and payments'},
-        {'name': 'messages', 'description': 'Patient-doctor messaging per appointment'},
-        {'name': 'Analytics', 'description': 'Aggregated dashboard statistics (admin only)'},
-        {'name': 'AI Assistant', 'description': 'RAG-based patient assistant (Q&A over own data + FAQs)'},
+    "TAGS": [
+        {"name": "Accounts", "description": "Registration, login/2FA, email verification, password reset, staff/user management"},
+        {"name": "departments", "description": "Hospital departments"},
+        {"name": "patients", "description": "Patient profiles"},
+        {"name": "doctors", "description": "Doctor profiles, availability, and leave"},
+        {"name": "appointments", "description": "Booking, queue, waitlist, feedback"},
+        {"name": "medical-records", "description": "EMR entries and diagnoses"},
+        {"name": "prescriptions", "description": "Prescriptions and PDF export"},
+        {"name": "lab", "description": "Lab test requests and reports"},
+        {"name": "notifications", "description": "In-app notifications"},
+        {"name": "Triage", "description": "AI provider settings, symptoms, triage assessment, emergency guidance"},
+        {"name": "audit-logs", "description": "Security/audit trail (admin only)"},
+        {"name": "billing", "description": "Invoices and payments"},
+        {"name": "messages", "description": "Patient-doctor messaging per appointment"},
+        {"name": "Analytics", "description": "Aggregated dashboard statistics (admin only)"},
+        {"name": "AI Assistant", "description": "RAG-based patient assistant (Q&A over own data + FAQs)"},
     ],
 }
 
 from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 
 # Cache (Redis if REDIS_CACHE_URL is set — mirrors the POSTGRES_HOST pattern above; falls back to
 # Django's in-process LocMemCache when it isn't, so local dev/tests work without Redis running).
-_redis_cache_url = os.environ.get('REDIS_CACHE_URL')
+_redis_cache_url = os.environ.get("REDIS_CACHE_URL")
 if _redis_cache_url:
     CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': _redis_cache_url,
-            'TIMEOUT': 300,
-            'OPTIONS': {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_cache_url,
+            "TIMEOUT": 300,
+            "OPTIONS": {
                 # Every DRF throttle check plus every cache read/write (departments, doctor
                 # availability, AI provider settings) touches Redis. A capped connection_pool_kwargs
                 # max_connections was tried here and made things worse under load (redis-py's sync
                 # ConnectionPool raised IndexError instead of blocking/erroring cleanly once the cap was
                 # hit) — left uncapped (redis-py's own default), with just a bounded socket timeout so a
                 # single slow Redis round-trip can't hang a request indefinitely.
-                'socket_timeout': 5,
-                'socket_connect_timeout': 5,
-                'retry_on_timeout': True,
+                "socket_timeout": 5,
+                "socket_connect_timeout": 5,
+                "retry_on_timeout": True,
             },
         }
     }
 
 
 # Celery
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6381/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6381/0')
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
-CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://127.0.0.1:6381/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6381/0")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
+CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "False") == "True"
 
 
 # Logging — stdout only (12-factor style: let Docker/the process supervisor own log storage/rotation
@@ -349,45 +343,45 @@ CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False') =
 # policy). `DJANGO_LOG_LEVEL` defaults to INFO; requests that raise a 5xx always log at ERROR with a
 # full traceback regardless, via django.request's own propagation.
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{asctime} {levelname} {name} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} {name} {message}",
+            "style": "{",
         },
     },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+    "root": {
+        "handlers": ["console"],
+        "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO"),
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
-            'propagate': False,
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO"),
+            "propagate": False,
         },
-        'django.request': {
+        "django.request": {
             # Always surface unhandled view exceptions/5xxs, even if DJANGO_LOG_LEVEL is set above WARNING.
-            'handlers': ['console'],
-            'level': 'WARNING',
-            'propagate': False,
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
         },
-        'django.security': {
-            'handlers': ['console'],
-            'level': 'WARNING',
-            'propagate': False,
+        "django.security": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
         },
-        'celery': {
-            'handlers': ['console'],
-            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
-            'propagate': False,
+        "celery": {
+            "handlers": ["console"],
+            "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO"),
+            "propagate": False,
         },
     },
 }
@@ -402,7 +396,7 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_REFERRER_POLICY = 'same-origin'
+    SECURE_REFERRER_POLICY = "same-origin"
     SESSION_COOKIE_HTTPONLY = True
     CSRF_COOKIE_HTTPONLY = True
 

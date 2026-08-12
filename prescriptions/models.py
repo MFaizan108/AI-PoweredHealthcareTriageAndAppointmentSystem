@@ -9,9 +9,7 @@ from patients.models import Patient
 class Prescription(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="prescriptions")
     doctor = models.ForeignKey(Doctor, on_delete=models.SET_NULL, null=True, related_name="prescriptions")
-    appointment = models.ForeignKey(
-        Appointment, on_delete=models.SET_NULL, null=True, blank=True, related_name="prescriptions"
-    )
+    appointment = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True, blank=True, related_name="prescriptions")
     medical_record = models.ForeignKey(
         MedicalRecord, on_delete=models.SET_NULL, null=True, blank=True, related_name="prescriptions"
     )

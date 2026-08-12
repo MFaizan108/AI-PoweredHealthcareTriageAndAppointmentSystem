@@ -22,8 +22,16 @@ class PrescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Prescription
         fields = [
-            "id", "patient", "patient_detail", "doctor", "doctor_detail", "appointment",
-            "medical_record", "notes", "items", "created_at",
+            "id",
+            "patient",
+            "patient_detail",
+            "doctor",
+            "doctor_detail",
+            "appointment",
+            "medical_record",
+            "notes",
+            "items",
+            "created_at",
         ]
         read_only_fields = ["id", "created_at"]
 

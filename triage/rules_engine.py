@@ -6,6 +6,7 @@ This layer is always authoritative. It never depends on the LLM (Layer 3) and
 does not require a trained ML model (Layer 2 is left as a documented future
 enhancement — see triage/README notes in the project blueprint).
 """
+
 from collections import Counter
 
 from .models import Symptom, TriageAssessment

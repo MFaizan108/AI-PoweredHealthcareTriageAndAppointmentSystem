@@ -34,8 +34,11 @@ class AppointmentBookingTests(APITestCase):
         self.appointment_date = today + datetime.timedelta(days=days_ahead)
 
         DoctorAvailability.objects.create(
-            doctor=self.doctor, weekday=target_weekday,
-            start_time=datetime.time(9, 0), end_time=datetime.time(11, 0), slot_duration_minutes=20,
+            doctor=self.doctor,
+            weekday=target_weekday,
+            start_time=datetime.time(9, 0),
+            end_time=datetime.time(11, 0),
+            slot_duration_minutes=20,
         )
 
         self.patient_user = User.objects.create_user(
@@ -145,13 +148,19 @@ class FeedbackTests(APITestCase):
         from .models import Appointment
 
         self.completed_appointment = Appointment.objects.create(
-            patient=self.patient, doctor=self.doctor, appointment_date=datetime.date.today(),
-            slot_start_time=datetime.time(9, 0), slot_end_time=datetime.time(9, 20),
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=datetime.date.today(),
+            slot_start_time=datetime.time(9, 0),
+            slot_end_time=datetime.time(9, 20),
             status=Appointment.Status.COMPLETED,
         )
         self.pending_appointment = Appointment.objects.create(
-            patient=self.patient, doctor=self.doctor, appointment_date=datetime.date.today(),
-            slot_start_time=datetime.time(9, 20), slot_end_time=datetime.time(9, 40),
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=datetime.date.today(),
+            slot_start_time=datetime.time(9, 20),
+            slot_end_time=datetime.time(9, 40),
             status=Appointment.Status.PENDING,
         )
 
@@ -205,8 +214,11 @@ class WaitlistNotificationTests(APITestCase):
         from .models import Appointment, Waitlist
 
         self.appointment = Appointment.objects.create(
-            patient=self.patient, doctor=self.doctor, appointment_date=datetime.date.today(),
-            slot_start_time=datetime.time(9, 0), slot_end_time=datetime.time(9, 20),
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=datetime.date.today(),
+            slot_start_time=datetime.time(9, 0),
+            slot_end_time=datetime.time(9, 20),
         )
         self.waitlist_entry = Waitlist.objects.create(
             patient=self.waiting_patient, doctor=self.doctor, preferred_date=datetime.date.today()
@@ -224,7 +236,9 @@ class WaitlistNotificationTests(APITestCase):
         self.waitlist_entry.refresh_from_db()
         self.assertEqual(self.waitlist_entry.status, Waitlist.Status.NOTIFIED)
 
-        notified = Notification.objects.filter(recipient=self.waiting_patient_user, notification_type=Notification.NotificationType.GENERAL)
+        notified = Notification.objects.filter(
+            recipient=self.waiting_patient_user, notification_type=Notification.NotificationType.GENERAL
+        )
         self.assertTrue(notified.exists())
 
 
@@ -247,8 +261,11 @@ class DoctorLeaveBlocksBookingTests(APITestCase):
         self.leave_date = today + datetime.timedelta(days=days_ahead)
 
         DoctorAvailability.objects.create(
-            doctor=self.doctor, weekday=target_weekday,
-            start_time=datetime.time(9, 0), end_time=datetime.time(11, 0), slot_duration_minutes=20,
+            doctor=self.doctor,
+            weekday=target_weekday,
+            start_time=datetime.time(9, 0),
+            end_time=datetime.time(11, 0),
+            slot_duration_minutes=20,
         )
         DoctorLeave.objects.create(doctor=self.doctor, start_date=self.leave_date, end_date=self.leave_date, reason="Leave")
 
@@ -298,8 +315,12 @@ class AppointmentWorkflowTests(APITestCase):
         from .models import Appointment
 
         self.appointment = Appointment.objects.create(
-            patient=self.patient, doctor=self.doctor, appointment_date=datetime.date.today(),
-            slot_start_time=datetime.time(9, 0), slot_end_time=datetime.time(9, 20), token_number="A-101",
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=datetime.date.today(),
+            slot_start_time=datetime.time(9, 0),
+            slot_end_time=datetime.time(9, 20),
+            token_number="A-101",
         )
 
     def test_patient_cannot_cancel_another_patients_appointment(self):

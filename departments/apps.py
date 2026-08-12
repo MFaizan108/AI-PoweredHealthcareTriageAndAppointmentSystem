@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class DepartmentsConfig(AppConfig):
-    name = 'departments'
+    name = "departments"
 
     def ready(self):
         import departments.signals  # noqa: F401

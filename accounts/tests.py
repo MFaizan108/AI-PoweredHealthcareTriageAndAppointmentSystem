@@ -302,7 +302,8 @@ class TwoFactorRecoveryCodeTests(APITestCase):
     def test_invalid_recovery_code_rejected(self):
         self._enable_2fa()
         resp = self.client.post(
-            "/api/accounts/login/", {"username": "recoveryuser", "password": "RecoveryPass123!", "recovery_code": "NOTREAL-CODE0000"}
+            "/api/accounts/login/",
+            {"username": "recoveryuser", "password": "RecoveryPass123!", "recovery_code": "NOTREAL-CODE0000"},
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 

@@ -1,0 +1,28 @@
+[tool.black]
+line-length = 130
+target-version = ["py313"]
+extend-exclude = '''
+/(
+  \.venv
+  | frontend
+  | migrations
+)/
+'''
+
+[tool.ruff]
+line-length = 130
+target-version = "py313"
+extend-exclude = ["frontend", ".venv", "*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501", # line length is Black's job, not the linter's
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "accounts", "departments", "patients", "doctors", "appointments", "medical_records",
+    "prescriptions", "laboratory", "notifications", "triage", "ai_assistant", "billing",
+    "messaging", "analytics", "audit_logs", "health", "ai_healthcare_triage_appointment_system",
+]

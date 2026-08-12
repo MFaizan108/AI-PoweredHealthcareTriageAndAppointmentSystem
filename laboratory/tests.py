@@ -11,17 +11,29 @@ from .models import LabTest
 
 class LabTestWorkflowTests(APITestCase):
     def setUp(self):
-        self.doctor_user = User.objects.create_user(username="lab_doc", email="lab_doc@example.com", password="x", role=User.Role.DOCTOR)
+        self.doctor_user = User.objects.create_user(
+            username="lab_doc", email="lab_doc@example.com", password="x", role=User.Role.DOCTOR
+        )
         self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
 
-        self.other_doctor_user = User.objects.create_user(username="lab_doc2", email="lab_doc2@example.com", password="x", role=User.Role.DOCTOR)
+        self.other_doctor_user = User.objects.create_user(
+            username="lab_doc2", email="lab_doc2@example.com", password="x", role=User.Role.DOCTOR
+        )
 
-        self.patient_user = User.objects.create_user(username="lab_pat", email="lab_pat@example.com", password="x", role=User.Role.PATIENT)
+        self.patient_user = User.objects.create_user(
+            username="lab_pat", email="lab_pat@example.com", password="x", role=User.Role.PATIENT
+        )
         self.patient = Patient.objects.get(user=self.patient_user)
-        self.other_patient_user = User.objects.create_user(username="lab_pat2", email="lab_pat2@example.com", password="x", role=User.Role.PATIENT)
+        self.other_patient_user = User.objects.create_user(
+            username="lab_pat2", email="lab_pat2@example.com", password="x", role=User.Role.PATIENT
+        )
 
-        self.lab_staff = User.objects.create_user(username="lab_staff1", email="lab_staff1@example.com", password="x", role=User.Role.LAB_STAFF)
-        self.receptionist = User.objects.create_user(username="lab_recep", email="lab_recep@example.com", password="x", role=User.Role.RECEPTIONIST)
+        self.lab_staff = User.objects.create_user(
+            username="lab_staff1", email="lab_staff1@example.com", password="x", role=User.Role.LAB_STAFF
+        )
+        self.receptionist = User.objects.create_user(
+            username="lab_recep", email="lab_recep@example.com", password="x", role=User.Role.RECEPTIONIST
+        )
 
         self.lab_test = LabTest.objects.create(patient=self.patient, requested_by=self.doctor, test_name="Complete Blood Count")
 
@@ -67,11 +79,17 @@ class LabTestWorkflowTests(APITestCase):
 
 class LabReportTests(APITestCase):
     def setUp(self):
-        self.doctor_user = User.objects.create_user(username="rep_doc", email="rep_doc@example.com", password="x", role=User.Role.DOCTOR)
+        self.doctor_user = User.objects.create_user(
+            username="rep_doc", email="rep_doc@example.com", password="x", role=User.Role.DOCTOR
+        )
         self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
-        self.patient_user = User.objects.create_user(username="rep_pat", email="rep_pat@example.com", password="x", role=User.Role.PATIENT)
+        self.patient_user = User.objects.create_user(
+            username="rep_pat", email="rep_pat@example.com", password="x", role=User.Role.PATIENT
+        )
         self.patient = Patient.objects.get(user=self.patient_user)
-        self.lab_staff = User.objects.create_user(username="rep_lab", email="rep_lab@example.com", password="x", role=User.Role.LAB_STAFF)
+        self.lab_staff = User.objects.create_user(
+            username="rep_lab", email="rep_lab@example.com", password="x", role=User.Role.LAB_STAFF
+        )
 
         self.lab_test = LabTest.objects.create(patient=self.patient, requested_by=self.doctor, test_name="Thyroid Panel")
 
@@ -94,8 +112,16 @@ class LabReportTests(APITestCase):
         self.client.force_authenticate(self.lab_staff)
         self.client.post("/api/lab/reports/", {"lab_test": self.lab_test.id, "result_summary": "Normal"})
 
-        self.assertTrue(Notification.objects.filter(recipient=self.patient_user, notification_type=Notification.NotificationType.LAB_REPORT_AVAILABLE).exists())
-        self.assertTrue(Notification.objects.filter(recipient=self.doctor_user, notification_type=Notification.NotificationType.LAB_REPORT_AVAILABLE).exists())
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.patient_user, notification_type=Notification.NotificationType.LAB_REPORT_AVAILABLE
+            ).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.doctor_user, notification_type=Notification.NotificationType.LAB_REPORT_AVAILABLE
+            ).exists()
+        )
 
     def test_patient_can_view_own_report(self):
         from .models import LabReport
@@ -109,7 +135,9 @@ class LabReportTests(APITestCase):
         self.client.force_authenticate(self.lab_staff)
         bad_file = SimpleUploadedFile("malware.exe", b"not a real report", content_type="application/octet-stream")
         resp = self.client.post(
-            "/api/lab/reports/", {"lab_test": self.lab_test.id, "report_file": bad_file}, format="multipart",
+            "/api/lab/reports/",
+            {"lab_test": self.lab_test.id, "report_file": bad_file},
+            format="multipart",
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -117,7 +145,9 @@ class LabReportTests(APITestCase):
         self.client.force_authenticate(self.lab_staff)
         good_file = SimpleUploadedFile("report.pdf", b"%PDF-1.4 fake pdf content", content_type="application/pdf")
         resp = self.client.post(
-            "/api/lab/reports/", {"lab_test": self.lab_test.id, "report_file": good_file}, format="multipart",
+            "/api/lab/reports/",
+            {"lab_test": self.lab_test.id, "report_file": good_file},
+            format="multipart",
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
 

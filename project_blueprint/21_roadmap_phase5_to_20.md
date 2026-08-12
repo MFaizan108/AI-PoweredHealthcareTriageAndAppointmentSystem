@@ -474,6 +474,19 @@ Professional README.
 
 ## Phase 15 — CI/CD Finalization ⚙️
 
+**Status: ✅ Implemented (2026-08-13)** — `ci.yml` split into staged jobs (lint-backend,
+lint-frontend, backend-tests, frontend-build, security, docker-build) so a fast lint failure
+doesn't wait on slow test services. Added `ruff` + `black` (backend), reusing the already-wired
+`oxlint` + added `npm audit` (frontend), `pip-audit`, a migration-check step, and a Docker build
+verification for both `Dockerfile` and `frontend/Dockerfile` (built locally first to confirm
+before trusting the workflow YAML). Turning on ruff/black required an actual one-time cleanup
+pass first — 13 real ruff findings fixed (unused imports, import order) and 88 files reformatted
+by black — re-verified with a full test-suite run afterward (198/198, unchanged) to confirm the
+formatting pass was purely cosmetic. Deploy is deliberately **not** automated: no real deployment
+target/secrets exist for this repo, and fabricating them would be worse than being explicit that
+production deploy stays the manual `docker compose --profile production up` from Phase 9 for now.
+See [docs/cicd.md](../docs/cicd.md).
+
 Current GitHub Actions ko upgrade karo:
 ```
 Push

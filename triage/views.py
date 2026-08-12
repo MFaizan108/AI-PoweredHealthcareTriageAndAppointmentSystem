@@ -15,7 +15,6 @@ from patients.models import Patient
 from .models import AIProviderSettings, EmergencyGuidance, Symptom, TriageAssessment
 from .permissions import CanAccessTriageAssessment, IsAdminOnly, IsAdminOrReadOnlyForAuthenticated
 from .rules_engine import run_rule_based_triage
-from .tasks import generate_ai_summary_task
 from .serializers import (
     AIProviderSettingsSerializer,
     EmergencyGuidanceSerializer,
@@ -24,11 +23,19 @@ from .serializers import (
     TriageRequestSerializer,
     TriageReviewSerializer,
 )
+from .tasks import generate_ai_summary_task
 
 
 @extend_schema_view(
-    get=extend_schema(tags=["Triage"], responses=AIProviderSettingsSerializer, description="View the current LLM provider configuration."),
-    patch=extend_schema(tags=["Triage"], request=AIProviderSettingsSerializer, responses=AIProviderSettingsSerializer, description="Update the LLM provider (Ollama/Groq), model, and Groq API key (encrypted at rest)."),
+    get=extend_schema(
+        tags=["Triage"], responses=AIProviderSettingsSerializer, description="View the current LLM provider configuration."
+    ),
+    patch=extend_schema(
+        tags=["Triage"],
+        request=AIProviderSettingsSerializer,
+        responses=AIProviderSettingsSerializer,
+        description="Update the LLM provider (Ollama/Groq), model, and Groq API key (encrypted at rest).",
+    ),
 )
 class AIProviderSettingsView(APIView):
     """Admin-only: view/update which LLM backend (Ollama or Groq) triage summaries use."""
@@ -48,9 +55,12 @@ class AIProviderSettingsView(APIView):
 
 
 @extend_schema_view(
-    list=extend_schema(tags=["Triage"]), retrieve=extend_schema(tags=["Triage"]),
-    create=extend_schema(tags=["Triage"]), update=extend_schema(tags=["Triage"]),
-    partial_update=extend_schema(tags=["Triage"]), destroy=extend_schema(tags=["Triage"]),
+    list=extend_schema(tags=["Triage"]),
+    retrieve=extend_schema(tags=["Triage"]),
+    create=extend_schema(tags=["Triage"]),
+    update=extend_schema(tags=["Triage"]),
+    partial_update=extend_schema(tags=["Triage"]),
+    destroy=extend_schema(tags=["Triage"]),
 )
 class SymptomViewSet(viewsets.ModelViewSet):
     """Admin-managed catalog of symptoms used by the rule-based triage engine (Layer 1)."""
@@ -61,7 +71,10 @@ class SymptomViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema_view(
-    list=extend_schema(tags=["Triage"], description="List past triage assessments visible to the requesting user (own, for patients; own patients', for doctors; all, for admins)."),
+    list=extend_schema(
+        tags=["Triage"],
+        description="List past triage assessments visible to the requesting user (own, for patients; own patients', for doctors; all, for admins).",
+    ),
     retrieve=extend_schema(tags=["Triage"]),
 )
 class TriageAssessmentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -91,7 +104,11 @@ class TriageAssessmentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, 
             qs = qs.filter(patient_id=patient)
         return qs
 
-    @extend_schema(tags=["Triage"], request=TriageReviewSerializer, description="A doctor/admin records whether they agreed with the AI's urgency call (for analytics only — does not alter the stored urgency).")
+    @extend_schema(
+        tags=["Triage"],
+        request=TriageReviewSerializer,
+        description="A doctor/admin records whether they agreed with the AI's urgency call (for analytics only — does not alter the stored urgency).",
+    )
     @action(detail=True, methods=["post"])
     def review(self, request, pk=None):
         """A doctor records whether they agreed with the AI's urgency call (for analytics only)."""
@@ -113,9 +130,12 @@ class TriageAssessmentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, 
 
 
 @extend_schema_view(
-    list=extend_schema(tags=["Triage"]), retrieve=extend_schema(tags=["Triage"]),
-    create=extend_schema(tags=["Triage"]), update=extend_schema(tags=["Triage"]),
-    partial_update=extend_schema(tags=["Triage"]), destroy=extend_schema(tags=["Triage"]),
+    list=extend_schema(tags=["Triage"]),
+    retrieve=extend_schema(tags=["Triage"]),
+    create=extend_schema(tags=["Triage"]),
+    update=extend_schema(tags=["Triage"]),
+    partial_update=extend_schema(tags=["Triage"]),
+    destroy=extend_schema(tags=["Triage"]),
 )
 class EmergencyGuidanceViewSet(viewsets.ModelViewSet):
     """Admin manages content; any authenticated user can read it (surfaced after a HIGH/EMERGENCY triage result)."""

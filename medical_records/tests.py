@@ -14,29 +14,46 @@ from .models import Diagnosis, MedicalRecord
 class MedicalRecordTests(APITestCase):
     def setUp(self):
         dept = Department.objects.create(name="Internal Medicine")
-        self.doctor_user = User.objects.create_user(username="mr_doc", email="mr_doc@example.com", password="x", role=User.Role.DOCTOR)
+        self.doctor_user = User.objects.create_user(
+            username="mr_doc", email="mr_doc@example.com", password="x", role=User.Role.DOCTOR
+        )
         self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
         self.doctor.department = dept
         self.doctor.save()
 
-        self.other_doctor_user = User.objects.create_user(username="mr_doc2", email="mr_doc2@example.com", password="x", role=User.Role.DOCTOR)
+        self.other_doctor_user = User.objects.create_user(
+            username="mr_doc2", email="mr_doc2@example.com", password="x", role=User.Role.DOCTOR
+        )
 
-        self.patient_user = User.objects.create_user(username="mr_pat", email="mr_pat@example.com", password="x", role=User.Role.PATIENT)
+        self.patient_user = User.objects.create_user(
+            username="mr_pat", email="mr_pat@example.com", password="x", role=User.Role.PATIENT
+        )
         self.patient = Patient.objects.get(user=self.patient_user)
 
-        self.other_patient_user = User.objects.create_user(username="mr_pat2", email="mr_pat2@example.com", password="x", role=User.Role.PATIENT)
+        self.other_patient_user = User.objects.create_user(
+            username="mr_pat2", email="mr_pat2@example.com", password="x", role=User.Role.PATIENT
+        )
 
-        self.receptionist = User.objects.create_user(username="mr_recep", email="mr_recep@example.com", password="x", role=User.Role.RECEPTIONIST)
+        self.receptionist = User.objects.create_user(
+            username="mr_recep", email="mr_recep@example.com", password="x", role=User.Role.RECEPTIONIST
+        )
 
         self.record = MedicalRecord.objects.create(
-            patient=self.patient, doctor=self.doctor, visit_date=datetime.date.today(), consultation_notes="Routine checkup.",
+            patient=self.patient,
+            doctor=self.doctor,
+            visit_date=datetime.date.today(),
+            consultation_notes="Routine checkup.",
         )
 
     def test_doctor_can_create_medical_record(self):
         self.client.force_authenticate(self.doctor_user)
         resp = self.client.post(
             "/api/medical-records/",
-            {"patient": self.patient.id, "visit_date": datetime.date.today().isoformat(), "consultation_notes": "Follow-up visit."},
+            {
+                "patient": self.patient.id,
+                "visit_date": datetime.date.today().isoformat(),
+                "consultation_notes": "Follow-up visit.",
+            },
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
         self.assertEqual(resp.data["doctor"], self.doctor.id)

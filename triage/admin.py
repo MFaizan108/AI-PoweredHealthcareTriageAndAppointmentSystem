@@ -6,7 +6,8 @@ from .models import AIProviderSettings, EmergencyGuidance, Symptom, TriageAssess
 
 class AIProviderSettingsForm(forms.ModelForm):
     groq_api_key = forms.CharField(
-        required=False, widget=forms.PasswordInput(render_value=True),
+        required=False,
+        widget=forms.PasswordInput(render_value=True),
         help_text="Stored encrypted at rest. Leave unchanged to keep the current key.",
     )
 

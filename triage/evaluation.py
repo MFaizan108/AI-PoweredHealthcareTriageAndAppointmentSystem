@@ -9,6 +9,7 @@ the `evaluate_ai` management command.
 Depends on the canonical symptom set from `seed_triage_data` (idempotent `update_or_create`,
 safe to call repeatedly) so the matrix is meaningful against a fresh/empty database too.
 """
+
 from django.core.management import call_command
 
 from .models import TriageAssessment

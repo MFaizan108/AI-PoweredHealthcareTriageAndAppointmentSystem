@@ -14,7 +14,11 @@ def generate_ai_summary_task(self, assessment_id):
     from .models import TriageAssessment
 
     try:
-        assessment = TriageAssessment.objects.select_related("suggested_department").prefetch_related("detected_symptoms").get(pk=assessment_id)
+        assessment = (
+            TriageAssessment.objects.select_related("suggested_department")
+            .prefetch_related("detected_symptoms")
+            .get(pk=assessment_id)
+        )
     except TriageAssessment.DoesNotExist:
         return
 
@@ -24,7 +28,5 @@ def generate_ai_summary_task(self, assessment_id):
     assessment.ai_summary = summary or ""
     assessment.ai_provider_used = provider or ""
     assessment.ai_summary_error = error or ""
-    assessment.ai_summary_status = (
-        TriageAssessment.AISummaryStatus.READY if summary else TriageAssessment.AISummaryStatus.FAILED
-    )
+    assessment.ai_summary_status = TriageAssessment.AISummaryStatus.READY if summary else TriageAssessment.AISummaryStatus.FAILED
     assessment.save(update_fields=["ai_summary", "ai_provider_used", "ai_summary_error", "ai_summary_status"])

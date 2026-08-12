@@ -14,8 +14,16 @@ class AIProviderSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AIProviderSettings
         fields = [
-            "id", "is_enabled", "provider", "ollama_base_url", "ollama_model",
-            "groq_api_key", "groq_api_key_set", "groq_model", "timeout_seconds", "updated_at",
+            "id",
+            "is_enabled",
+            "provider",
+            "ollama_base_url",
+            "ollama_model",
+            "groq_api_key",
+            "groq_api_key_set",
+            "groq_model",
+            "timeout_seconds",
+            "updated_at",
         ]
         read_only_fields = ["id", "updated_at"]
 
@@ -29,8 +37,14 @@ class SymptomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Symptom
         fields = [
-            "id", "name", "category", "keywords", "severity_weight", "red_flag",
-            "suggested_department", "suggested_department_name",
+            "id",
+            "name",
+            "category",
+            "keywords",
+            "severity_weight",
+            "red_flag",
+            "suggested_department",
+            "suggested_department_name",
         ]
         read_only_fields = ["id"]
 
@@ -44,15 +58,42 @@ class TriageAssessmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = TriageAssessment
         fields = [
-            "id", "patient", "patient_detail", "appointment", "symptoms_text", "detected_symptoms",
-            "urgency", "suggested_department", "suggested_department_detail", "reasoning",
-            "ai_summary", "ai_provider_used", "ai_summary_error", "ai_summary_status", "disclaimer",
-            "reviewed_by", "clinician_agrees", "clinician_notes", "reviewed_at", "created_at",
+            "id",
+            "patient",
+            "patient_detail",
+            "appointment",
+            "symptoms_text",
+            "detected_symptoms",
+            "urgency",
+            "suggested_department",
+            "suggested_department_detail",
+            "reasoning",
+            "ai_summary",
+            "ai_provider_used",
+            "ai_summary_error",
+            "ai_summary_status",
+            "disclaimer",
+            "reviewed_by",
+            "clinician_agrees",
+            "clinician_notes",
+            "reviewed_at",
+            "created_at",
         ]
         read_only_fields = [
-            "id", "detected_symptoms", "urgency", "suggested_department", "reasoning",
-            "ai_summary", "ai_provider_used", "ai_summary_error", "ai_summary_status",
-            "reviewed_by", "clinician_agrees", "clinician_notes", "reviewed_at", "created_at",
+            "id",
+            "detected_symptoms",
+            "urgency",
+            "suggested_department",
+            "reasoning",
+            "ai_summary",
+            "ai_provider_used",
+            "ai_summary_error",
+            "ai_summary_status",
+            "reviewed_by",
+            "clinician_agrees",
+            "clinician_notes",
+            "reviewed_at",
+            "created_at",
         ]
 
     def get_disclaimer(self, obj) -> str:

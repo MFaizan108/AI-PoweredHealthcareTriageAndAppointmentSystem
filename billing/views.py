@@ -1,7 +1,5 @@
 from rest_framework import viewsets
 
-from accounts.models import User
-
 from .models import Invoice, Payment
 from .permissions import BILLING_STAFF, CanAccessInvoice, CanAccessPayment
 from .serializers import InvoiceSerializer, PaymentSerializer

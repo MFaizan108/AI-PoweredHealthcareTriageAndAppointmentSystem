@@ -9,6 +9,7 @@ Runs against whichever provider(s) are actually reachable — if a provider is d
 unconfigured (e.g. no Groq API key), that's a legitimate result: it shows up as a 100%
 failure rate rather than crashing the evaluation. No database writes.
 """
+
 import copy
 import time
 
@@ -18,8 +19,16 @@ from .models import AIProviderSettings
 # Representative prompts spanning the shapes triage actually sends to the LLM.
 LLM_EVAL_SAMPLES = [
     {"symptoms_text": "I have a mild fever and a cough.", "detected_symptom_names": ["Fever", "Cough"], "urgency": "low"},
-    {"symptoms_text": "Severe chest pain radiating to my left arm.", "detected_symptom_names": ["Chest Pain"], "urgency": "emergency"},
-    {"symptoms_text": "I've had a headache and feel dizzy since this morning.", "detected_symptom_names": ["Headache", "Dizziness"], "urgency": "moderate"},
+    {
+        "symptoms_text": "Severe chest pain radiating to my left arm.",
+        "detected_symptom_names": ["Chest Pain"],
+        "urgency": "emergency",
+    },
+    {
+        "symptoms_text": "I've had a headache and feel dizzy since this morning.",
+        "detected_symptom_names": ["Headache", "Dizziness"],
+        "urgency": "moderate",
+    },
 ]
 
 
@@ -52,7 +61,9 @@ def evaluate_provider(provider, samples=LLM_EVAL_SAMPLES):
         start = time.monotonic()
         text, _, error = ask_llm(SYSTEM_PROMPT, prompt, settings_obj=settings_obj)
         latency_ms = (time.monotonic() - start) * 1000
-        calls.append({"prompt": sample["symptoms_text"], "latency_ms": latency_ms, "outcome": _classify(text, error), "error": error})
+        calls.append(
+            {"prompt": sample["symptoms_text"], "latency_ms": latency_ms, "outcome": _classify(text, error), "error": error}
+        )
 
     total = len(calls)
     outcomes = {"success": 0, "failure": 0, "timeout": 0, "invalid_response": 0}

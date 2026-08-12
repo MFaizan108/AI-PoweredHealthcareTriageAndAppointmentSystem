@@ -72,7 +72,5 @@ def get_available_slots(doctor, date):
 
 def generate_token_number(doctor, date):
     """Sequential per-doctor, per-day token, e.g. A-101, A-102 ..."""
-    count = Appointment.objects.filter(doctor=doctor, appointment_date=date).exclude(
-        status=Appointment.Status.CANCELLED
-    ).count()
+    count = Appointment.objects.filter(doctor=doctor, appointment_date=date).exclude(status=Appointment.Status.CANCELLED).count()
     return f"A-{100 + count + 1}"

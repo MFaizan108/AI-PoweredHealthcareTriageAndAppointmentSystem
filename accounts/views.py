@@ -69,7 +69,10 @@ class LogoutAllDevicesView(APIView):
         return Response({"sessions_invalidated": count})
 
 
-@extend_schema(tags=["Accounts"], description="Public self-registration — always creates a `patient` account; the `role` field, if sent, is ignored.")
+@extend_schema(
+    tags=["Accounts"],
+    description="Public self-registration — always creates a `patient` account; the `role` field, if sent, is ignored.",
+)
 class RegisterView(generics.CreateAPIView):
     """Public self-registration — patients only."""
 
@@ -125,7 +128,11 @@ class LoginHistoryEntrySerializer(serializers.Serializer):
     created_at = serializers.DateTimeField()
 
 
-@extend_schema(tags=["Accounts"], responses=LoginHistoryEntrySerializer(many=True), description="Self-service: the current user's own successful-login history (device/IP/time), most recent 50.")
+@extend_schema(
+    tags=["Accounts"],
+    responses=LoginHistoryEntrySerializer(many=True),
+    description="Self-service: the current user's own successful-login history (device/IP/time), most recent 50.",
+)
 class LoginHistoryView(APIView):
     """Self-service: the current user's own successful-login history (device/IP/time)."""
 
@@ -134,10 +141,5 @@ class LoginHistoryView(APIView):
     def get(self, request):
         from audit_logs.models import AuditLog
 
-        entries = AuditLog.objects.filter(
-            user=request.user, action=AuditLog.Action.LOGIN_SUCCESS
-        ).order_by("-created_at")[:50]
-        return Response([
-            {"ip_address": e.ip_address, "user_agent": e.user_agent, "created_at": e.created_at}
-            for e in entries
-        ])
+        entries = AuditLog.objects.filter(user=request.user, action=AuditLog.Action.LOGIN_SUCCESS).order_by("-created_at")[:50]
+        return Response([{"ip_address": e.ip_address, "user_agent": e.user_agent, "created_at": e.created_at} for e in entries])

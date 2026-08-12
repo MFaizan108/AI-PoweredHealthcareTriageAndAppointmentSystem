@@ -3,6 +3,7 @@ Patient's authorized records / hospital FAQs -> LLM -> Response.
 
 Only ever reads data already scoped to the requesting patient — never another patient's records.
 """
+
 from django.utils import timezone
 
 from .models import HospitalFAQ
@@ -11,9 +12,11 @@ from .models import HospitalFAQ
 def get_patient_context(patient):
     lines = []
 
-    upcoming = patient.appointments.exclude(status__in=["cancelled", "completed"]).filter(
-        appointment_date__gte=timezone.localdate()
-    ).order_by("appointment_date", "slot_start_time")[:3]
+    upcoming = (
+        patient.appointments.exclude(status__in=["cancelled", "completed"])
+        .filter(appointment_date__gte=timezone.localdate())
+        .order_by("appointment_date", "slot_start_time")[:3]
+    )
     if upcoming:
         lines.append("Upcoming appointments:")
         for a in upcoming:

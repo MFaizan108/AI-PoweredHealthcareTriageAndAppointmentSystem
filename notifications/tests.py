@@ -8,11 +8,22 @@ from .models import Notification
 
 class NotificationTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="notif_user", email="notif_user@example.com", password="x", role=User.Role.PATIENT)
-        self.other_user = User.objects.create_user(username="notif_other", email="notif_other@example.com", password="x", role=User.Role.PATIENT)
+        self.user = User.objects.create_user(
+            username="notif_user", email="notif_user@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.other_user = User.objects.create_user(
+            username="notif_other", email="notif_other@example.com", password="x", role=User.Role.PATIENT
+        )
 
-        self.n1 = Notification.objects.create(recipient=self.user, title="Appointment booked", notification_type=Notification.NotificationType.APPOINTMENT_BOOKED)
-        self.n2 = Notification.objects.create(recipient=self.user, title="Reminder", notification_type=Notification.NotificationType.APPOINTMENT_REMINDER, is_read=True)
+        self.n1 = Notification.objects.create(
+            recipient=self.user, title="Appointment booked", notification_type=Notification.NotificationType.APPOINTMENT_BOOKED
+        )
+        self.n2 = Notification.objects.create(
+            recipient=self.user,
+            title="Reminder",
+            notification_type=Notification.NotificationType.APPOINTMENT_REMINDER,
+            is_read=True,
+        )
         Notification.objects.create(recipient=self.other_user, title="Not yours")
 
     def test_user_only_sees_own_notifications(self):

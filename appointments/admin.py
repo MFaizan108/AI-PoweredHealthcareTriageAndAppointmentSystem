@@ -6,8 +6,13 @@ from .models import Appointment, Feedback, Waitlist
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
     list_display = [
-        "token_number", "patient", "doctor", "appointment_date", "slot_start_time",
-        "status", "checked_in",
+        "token_number",
+        "patient",
+        "doctor",
+        "appointment_date",
+        "slot_start_time",
+        "status",
+        "checked_in",
     ]
     list_filter = ["status", "checked_in", "appointment_date"]
     search_fields = ["patient__user__username", "doctor__user__username", "token_number"]

@@ -13,6 +13,7 @@ and safe to re-run. The date-anchored clinical data (appointments and what hangs
 seeded relative to "today" each run, so re-running on a later date adds a fresh, currently-
 upcoming appointment rather than leaving behind one that's now in the past — see docs/demo.md.
 """
+
 import datetime
 
 from django.core.management import call_command
@@ -66,8 +67,14 @@ class Command(BaseCommand):
 
     def _seed_admin(self):
         user, created = get_or_create_user(
-            "demo_admin", email="demo_admin@example.com", role=User.Role.ADMIN,
-            first_name="Imran", last_name="Sheikh", is_staff=True, is_superuser=True, email_verified=True,
+            "demo_admin",
+            email="demo_admin@example.com",
+            role=User.Role.ADMIN,
+            first_name="Imran",
+            last_name="Sheikh",
+            is_staff=True,
+            is_superuser=True,
+            email_verified=True,
         )
         self.stdout.write(f"Admin: {user.username} ({'created' if created else 'already existed'})")
         return user
@@ -76,15 +83,39 @@ class Command(BaseCommand):
         from doctors.models import Doctor, DoctorAvailability
 
         specs = [
-            dict(username="dr_ayesha", first_name="Ayesha", last_name="Khan", department="Cardiology",
-                 specialization="Cardiologist", qualification="MBBS, FCPS (Cardiology)",
-                 license_number="PMC-10234", experience_years=12, consultation_fee=2500),
-            dict(username="dr_bilal", first_name="Bilal", last_name="Ahmed", department="General Medicine",
-                 specialization="General Physician", qualification="MBBS, FCPS (Medicine)",
-                 license_number="PMC-10456", experience_years=8, consultation_fee=1500),
-            dict(username="dr_sara", first_name="Sara", last_name="Malik", department="Dermatology",
-                 specialization="Dermatologist", qualification="MBBS, MD (Dermatology)",
-                 license_number="PMC-10789", experience_years=6, consultation_fee=2000),
+            dict(
+                username="dr_ayesha",
+                first_name="Ayesha",
+                last_name="Khan",
+                department="Cardiology",
+                specialization="Cardiologist",
+                qualification="MBBS, FCPS (Cardiology)",
+                license_number="PMC-10234",
+                experience_years=12,
+                consultation_fee=2500,
+            ),
+            dict(
+                username="dr_bilal",
+                first_name="Bilal",
+                last_name="Ahmed",
+                department="General Medicine",
+                specialization="General Physician",
+                qualification="MBBS, FCPS (Medicine)",
+                license_number="PMC-10456",
+                experience_years=8,
+                consultation_fee=1500,
+            ),
+            dict(
+                username="dr_sara",
+                first_name="Sara",
+                last_name="Malik",
+                department="Dermatology",
+                specialization="Dermatologist",
+                qualification="MBBS, MD (Dermatology)",
+                license_number="PMC-10789",
+                experience_years=6,
+                consultation_fee=2000,
+            ),
         ]
 
         doctors = {}
@@ -92,8 +123,12 @@ class Command(BaseCommand):
             username = spec.pop("username")
             dept_name = spec.pop("department")
             user, created = get_or_create_user(
-                username, email=f"{username}@example.com", role=User.Role.DOCTOR,
-                first_name=spec["first_name"], last_name=spec["last_name"], email_verified=True,
+                username,
+                email=f"{username}@example.com",
+                role=User.Role.DOCTOR,
+                first_name=spec["first_name"],
+                last_name=spec["last_name"],
+                email_verified=True,
             )
             doctor = Doctor.objects.get(user=user)
             doctor.department = departments[dept_name]
@@ -106,7 +141,10 @@ class Command(BaseCommand):
 
             for weekday in range(5):  # Monday-Friday
                 DoctorAvailability.objects.get_or_create(
-                    doctor=doctor, weekday=weekday, start_time=datetime.time(9, 0), end_time=datetime.time(17, 0),
+                    doctor=doctor,
+                    weekday=weekday,
+                    start_time=datetime.time(9, 0),
+                    end_time=datetime.time(17, 0),
                     defaults={"slot_duration_minutes": 20},
                 )
             doctors[username] = doctor
@@ -115,16 +153,24 @@ class Command(BaseCommand):
 
     def _seed_receptionist(self):
         user, created = get_or_create_user(
-            "reception_uzma", email="reception_uzma@example.com", role=User.Role.RECEPTIONIST,
-            first_name="Uzma", last_name="Farooq", email_verified=True,
+            "reception_uzma",
+            email="reception_uzma@example.com",
+            role=User.Role.RECEPTIONIST,
+            first_name="Uzma",
+            last_name="Farooq",
+            email_verified=True,
         )
         self.stdout.write(f"Receptionist: {user.username} ({'created' if created else 'already existed'})")
         return user
 
     def _seed_lab_staff(self):
         user, created = get_or_create_user(
-            "lab_hassan", email="lab_hassan@example.com", role=User.Role.LAB_STAFF,
-            first_name="Hassan", last_name="Raza", email_verified=True,
+            "lab_hassan",
+            email="lab_hassan@example.com",
+            role=User.Role.LAB_STAFF,
+            first_name="Hassan",
+            last_name="Raza",
+            email_verified=True,
         )
         self.stdout.write(f"Lab Staff: {user.username} ({'created' if created else 'already existed'})")
         return user
@@ -133,23 +179,54 @@ class Command(BaseCommand):
         from patients.models import Patient
 
         specs = [
-            dict(username="patient_ali", first_name="Ali", last_name="Raza", dob=datetime.date(1990, 5, 14),
-                 gender="male", blood_group="O+", address="House 12, Street 5, Gulberg, Lahore",
-                 emergency_contact_name="Fatima Raza", emergency_contact_phone="03001234567", allergies="Penicillin"),
-            dict(username="patient_mariam", first_name="Mariam", last_name="Siddiqui", dob=datetime.date(1985, 11, 2),
-                 gender="female", blood_group="A+", address="Flat 4B, DHA Phase 6, Karachi",
-                 emergency_contact_name="Usman Siddiqui", emergency_contact_phone="03211234567", allergies=""),
-            dict(username="patient_zain", first_name="Zain", last_name="Iqbal", dob=datetime.date(2001, 2, 20),
-                 gender="male", blood_group="B+", address="Model Town, Islamabad",
-                 emergency_contact_name="Noor Iqbal", emergency_contact_phone="03331234567", allergies="Dust, Pollen"),
+            dict(
+                username="patient_ali",
+                first_name="Ali",
+                last_name="Raza",
+                dob=datetime.date(1990, 5, 14),
+                gender="male",
+                blood_group="O+",
+                address="House 12, Street 5, Gulberg, Lahore",
+                emergency_contact_name="Fatima Raza",
+                emergency_contact_phone="03001234567",
+                allergies="Penicillin",
+            ),
+            dict(
+                username="patient_mariam",
+                first_name="Mariam",
+                last_name="Siddiqui",
+                dob=datetime.date(1985, 11, 2),
+                gender="female",
+                blood_group="A+",
+                address="Flat 4B, DHA Phase 6, Karachi",
+                emergency_contact_name="Usman Siddiqui",
+                emergency_contact_phone="03211234567",
+                allergies="",
+            ),
+            dict(
+                username="patient_zain",
+                first_name="Zain",
+                last_name="Iqbal",
+                dob=datetime.date(2001, 2, 20),
+                gender="male",
+                blood_group="B+",
+                address="Model Town, Islamabad",
+                emergency_contact_name="Noor Iqbal",
+                emergency_contact_phone="03331234567",
+                allergies="Dust, Pollen",
+            ),
         ]
 
         patients = {}
         for spec in specs:
             username = spec["username"]
             user, created = get_or_create_user(
-                username, email=f"{username}@example.com", role=User.Role.PATIENT,
-                first_name=spec["first_name"], last_name=spec["last_name"], email_verified=True,
+                username,
+                email=f"{username}@example.com",
+                role=User.Role.PATIENT,
+                first_name=spec["first_name"],
+                last_name=spec["last_name"],
+                email_verified=True,
             )
             patient = Patient.objects.get(user=user)
             patient.date_of_birth = spec["dob"]
@@ -171,14 +248,46 @@ class Command(BaseCommand):
 
         today = datetime.date.today()
         specs = [
-            dict(key="ali_bilal_past", patient="patient_ali", doctor="dr_bilal", date=today - datetime.timedelta(days=7),
-                 start=datetime.time(9, 0), status=Appointment.Status.COMPLETED, reason="Fever and cough for 3 days.", token="A-101"),
-            dict(key="mariam_ayesha_past", patient="patient_mariam", doctor="dr_ayesha", date=today - datetime.timedelta(days=3),
-                 start=datetime.time(9, 20), status=Appointment.Status.COMPLETED, reason="Follow-up for hypertension.", token="A-101"),
-            dict(key="zain_sara_upcoming", patient="patient_zain", doctor="dr_sara", date=today + datetime.timedelta(days=1),
-                 start=datetime.time(10, 0), status=Appointment.Status.PENDING, reason="Persistent skin rash.", token="A-103"),
-            dict(key="ali_ayesha_upcoming", patient="patient_ali", doctor="dr_ayesha", date=today + datetime.timedelta(days=5),
-                 start=datetime.time(11, 0), status=Appointment.Status.CONFIRMED, reason="Chest discomfort on exertion.", token="A-102"),
+            dict(
+                key="ali_bilal_past",
+                patient="patient_ali",
+                doctor="dr_bilal",
+                date=today - datetime.timedelta(days=7),
+                start=datetime.time(9, 0),
+                status=Appointment.Status.COMPLETED,
+                reason="Fever and cough for 3 days.",
+                token="A-101",
+            ),
+            dict(
+                key="mariam_ayesha_past",
+                patient="patient_mariam",
+                doctor="dr_ayesha",
+                date=today - datetime.timedelta(days=3),
+                start=datetime.time(9, 20),
+                status=Appointment.Status.COMPLETED,
+                reason="Follow-up for hypertension.",
+                token="A-101",
+            ),
+            dict(
+                key="zain_sara_upcoming",
+                patient="patient_zain",
+                doctor="dr_sara",
+                date=today + datetime.timedelta(days=1),
+                start=datetime.time(10, 0),
+                status=Appointment.Status.PENDING,
+                reason="Persistent skin rash.",
+                token="A-103",
+            ),
+            dict(
+                key="ali_ayesha_upcoming",
+                patient="patient_ali",
+                doctor="dr_ayesha",
+                date=today + datetime.timedelta(days=5),
+                start=datetime.time(11, 0),
+                status=Appointment.Status.CONFIRMED,
+                reason="Chest discomfort on exertion.",
+                token="A-102",
+            ),
         ]
 
         appointments = {}
@@ -188,10 +297,15 @@ class Command(BaseCommand):
             is_completed = spec["status"] == Appointment.Status.COMPLETED
             checked_in_at = timezone.make_aware(datetime.datetime.combine(spec["date"], spec["start"])) if is_completed else None
             appointment, created = Appointment.objects.get_or_create(
-                doctor=doctor, appointment_date=spec["date"], slot_start_time=spec["start"],
+                doctor=doctor,
+                appointment_date=spec["date"],
+                slot_start_time=spec["start"],
                 defaults=dict(
-                    patient=patients[spec["patient"]], slot_end_time=end_time, status=spec["status"],
-                    reason=spec["reason"], token_number=spec["token"],
+                    patient=patients[spec["patient"]],
+                    slot_end_time=end_time,
+                    status=spec["status"],
+                    reason=spec["reason"],
+                    token_number=spec["token"],
                     checked_in=spec["status"] != Appointment.Status.PENDING,
                     checked_in_at=checked_in_at,
                     consultation_started_at=checked_in_at,
@@ -206,12 +320,18 @@ class Command(BaseCommand):
         from medical_records.models import Diagnosis, MedicalRecord
 
         specs = [
-            dict(key="ali_bilal_past", notes="Patient presented with fever (101F) and productive cough for 3 days. "
-                 "Chest clear on auscultation. Advised rest, fluids, and paracetamol.",
-                 diagnosis="Acute viral upper respiratory tract infection."),
-            dict(key="mariam_ayesha_past", notes="Routine hypertension follow-up. BP 138/88, stable on current medication. "
-                 "Advised to continue low-salt diet and monitor BP weekly.",
-                 diagnosis="Essential hypertension, controlled."),
+            dict(
+                key="ali_bilal_past",
+                notes="Patient presented with fever (101F) and productive cough for 3 days. "
+                "Chest clear on auscultation. Advised rest, fluids, and paracetamol.",
+                diagnosis="Acute viral upper respiratory tract infection.",
+            ),
+            dict(
+                key="mariam_ayesha_past",
+                notes="Routine hypertension follow-up. BP 138/88, stable on current medication. "
+                "Advised to continue low-salt diet and monitor BP weekly.",
+                diagnosis="Essential hypertension, controlled.",
+            ),
         ]
         count = 0
         for spec in specs:
@@ -219,8 +339,10 @@ class Command(BaseCommand):
             record, created = MedicalRecord.objects.get_or_create(
                 appointment=appointment,
                 defaults=dict(
-                    patient=appointment.patient, doctor=appointment.doctor,
-                    visit_date=appointment.appointment_date, consultation_notes=spec["notes"],
+                    patient=appointment.patient,
+                    doctor=appointment.doctor,
+                    visit_date=appointment.appointment_date,
+                    consultation_notes=spec["notes"],
                 ),
             )
             Diagnosis.objects.get_or_create(medical_record=record, description=spec["diagnosis"])
@@ -231,13 +353,39 @@ class Command(BaseCommand):
         from prescriptions.models import Prescription, PrescriptionItem
 
         specs = [
-            dict(key="ali_bilal_past", notes="Take with food. Return if fever persists beyond 5 days.", items=[
-                dict(medicine_name="Paracetamol", dosage="500mg", frequency="Every 6 hours", duration="5 days", instructions="After meals"),
-                dict(medicine_name="Cetirizine", dosage="10mg", frequency="Once daily", duration="5 days", instructions="At night"),
-            ]),
-            dict(key="mariam_ayesha_past", notes="Continue existing antihypertensive regimen.", items=[
-                dict(medicine_name="Amlodipine", dosage="5mg", frequency="Once daily", duration="30 days", instructions="Morning, with water"),
-            ]),
+            dict(
+                key="ali_bilal_past",
+                notes="Take with food. Return if fever persists beyond 5 days.",
+                items=[
+                    dict(
+                        medicine_name="Paracetamol",
+                        dosage="500mg",
+                        frequency="Every 6 hours",
+                        duration="5 days",
+                        instructions="After meals",
+                    ),
+                    dict(
+                        medicine_name="Cetirizine",
+                        dosage="10mg",
+                        frequency="Once daily",
+                        duration="5 days",
+                        instructions="At night",
+                    ),
+                ],
+            ),
+            dict(
+                key="mariam_ayesha_past",
+                notes="Continue existing antihypertensive regimen.",
+                items=[
+                    dict(
+                        medicine_name="Amlodipine",
+                        dosage="5mg",
+                        frequency="Once daily",
+                        duration="30 days",
+                        instructions="Morning, with water",
+                    ),
+                ],
+            ),
         ]
         created_count = 0
         for spec in specs:
@@ -246,7 +394,10 @@ class Command(BaseCommand):
             if prescription:
                 continue
             prescription = Prescription.objects.create(
-                patient=appointment.patient, doctor=appointment.doctor, appointment=appointment, notes=spec["notes"],
+                patient=appointment.patient,
+                doctor=appointment.doctor,
+                appointment=appointment,
+                notes=spec["notes"],
             )
             for item in spec["items"]:
                 PrescriptionItem.objects.create(prescription=prescription, **item)
@@ -259,33 +410,50 @@ class Command(BaseCommand):
         lab_tests = {}
 
         completed_spec = dict(
-            patient="patient_ali", doctor="dr_bilal", appointment="ali_bilal_past",
-            test_name="Complete Blood Count", notes="Rule out bacterial infection.",
+            patient="patient_ali",
+            doctor="dr_bilal",
+            appointment="ali_bilal_past",
+            test_name="Complete Blood Count",
+            notes="Rule out bacterial infection.",
             result_summary="WBC 11,200/uL (mildly elevated), Hemoglobin 13.8 g/dL, Platelets normal. "
             "Findings consistent with a viral illness; no evidence of bacterial infection.",
         )
         test, created = LabTest.objects.get_or_create(
-            patient=patients[completed_spec["patient"]], test_name=completed_spec["test_name"],
+            patient=patients[completed_spec["patient"]],
+            test_name=completed_spec["test_name"],
             requested_by=doctors[completed_spec["doctor"]],
             defaults=dict(
-                appointment=appointments[completed_spec["appointment"]], notes=completed_spec["notes"],
+                appointment=appointments[completed_spec["appointment"]],
+                notes=completed_spec["notes"],
                 status=LabTest.Status.COMPLETED,
             ),
         )
-        LabReport.objects.get_or_create(lab_test=test, defaults=dict(
-            result_summary=completed_spec["result_summary"], reviewed_by_doctor=True,
-            reviewed_at=test.requested_at,
-        ))
+        LabReport.objects.get_or_create(
+            lab_test=test,
+            defaults=dict(
+                result_summary=completed_spec["result_summary"],
+                reviewed_by_doctor=True,
+                reviewed_at=test.requested_at,
+            ),
+        )
         lab_tests["ali_cbc"] = test
 
         pending_spec = dict(
-            patient="patient_mariam", doctor="dr_ayesha", appointment="mariam_ayesha_past",
-            test_name="Lipid Profile", notes="Baseline cardiovascular risk assessment.",
+            patient="patient_mariam",
+            doctor="dr_ayesha",
+            appointment="mariam_ayesha_past",
+            test_name="Lipid Profile",
+            notes="Baseline cardiovascular risk assessment.",
         )
         test, _ = LabTest.objects.get_or_create(
-            patient=patients[pending_spec["patient"]], test_name=pending_spec["test_name"],
+            patient=patients[pending_spec["patient"]],
+            test_name=pending_spec["test_name"],
             requested_by=doctors[pending_spec["doctor"]],
-            defaults=dict(appointment=appointments[pending_spec["appointment"]], notes=pending_spec["notes"], status=LabTest.Status.REQUESTED),
+            defaults=dict(
+                appointment=appointments[pending_spec["appointment"]],
+                notes=pending_spec["notes"],
+                status=LabTest.Status.REQUESTED,
+            ),
         )
         lab_tests["mariam_lipid"] = test
 
@@ -296,10 +464,22 @@ class Command(BaseCommand):
         from billing.models import Invoice, Payment
 
         specs = [
-            dict(key="ali_bilal_past", appointment="ali_bilal_past", lab_test="ali_cbc", lab_charges=1200,
-                 status=Invoice.Status.PAID, description="Consultation - Dr. Bilal Ahmed + Complete Blood Count"),
-            dict(key="mariam_ayesha_past", appointment="mariam_ayesha_past", lab_test=None, lab_charges=0,
-                 status=Invoice.Status.PARTIALLY_PAID, description="Consultation - Dr. Ayesha Khan"),
+            dict(
+                key="ali_bilal_past",
+                appointment="ali_bilal_past",
+                lab_test="ali_cbc",
+                lab_charges=1200,
+                status=Invoice.Status.PAID,
+                description="Consultation - Dr. Bilal Ahmed + Complete Blood Count",
+            ),
+            dict(
+                key="mariam_ayesha_past",
+                appointment="mariam_ayesha_past",
+                lab_test=None,
+                lab_charges=0,
+                status=Invoice.Status.PARTIALLY_PAID,
+                description="Consultation - Dr. Ayesha Khan",
+            ),
         ]
         created_count = 0
         for spec in specs:
@@ -308,10 +488,13 @@ class Command(BaseCommand):
             if invoice:
                 continue
             invoice = Invoice.objects.create(
-                patient=appointment.patient, appointment=appointment,
+                patient=appointment.patient,
+                appointment=appointment,
                 lab_test=lab_tests.get(spec["lab_test"]) if spec["lab_test"] else None,
-                description=spec["description"], consultation_fee=appointment.doctor.consultation_fee,
-                lab_charges=spec["lab_charges"], status=spec["status"],
+                description=spec["description"],
+                consultation_fee=appointment.doctor.consultation_fee,
+                lab_charges=spec["lab_charges"],
+                status=spec["status"],
             )
             if spec["status"] == Invoice.Status.PAID:
                 Payment.objects.create(invoice=invoice, amount=invoice.total_amount, method=Payment.Method.CASH)
@@ -325,8 +508,16 @@ class Command(BaseCommand):
 
         appointment = appointments["ali_bilal_past"]
         exchange = [
-            (appointment.patient.user, appointment.doctor.user, "Hello Dr. Ahmed, should I continue the cough syrup after the fever is gone?"),
-            (appointment.doctor.user, appointment.patient.user, "Yes, please finish the 5-day course even if you feel better sooner."),
+            (
+                appointment.patient.user,
+                appointment.doctor.user,
+                "Hello Dr. Ahmed, should I continue the cough syrup after the fever is gone?",
+            ),
+            (
+                appointment.doctor.user,
+                appointment.patient.user,
+                "Yes, please finish the 5-day course even if you feel better sooner.",
+            ),
         ]
         created_count = 0
         for sender, recipient, body in exchange:
@@ -338,17 +529,31 @@ class Command(BaseCommand):
         from notifications.models import Notification
 
         specs = [
-            dict(patient="patient_zain", type=Notification.NotificationType.APPOINTMENT_BOOKED,
-                 title="Appointment booked", message="Your appointment with Dr. Sara Malik is confirmed for tomorrow at 10:00 AM."),
-            dict(patient="patient_ali", type=Notification.NotificationType.LAB_REPORT_AVAILABLE,
-                 title="Lab report available", message="Your Complete Blood Count report is now available on your dashboard."),
-            dict(patient="patient_ali", type=Notification.NotificationType.PRESCRIPTION_AVAILABLE,
-                 title="Prescription available", message="Dr. Bilal Ahmed has added a new prescription to your record."),
+            dict(
+                patient="patient_zain",
+                type=Notification.NotificationType.APPOINTMENT_BOOKED,
+                title="Appointment booked",
+                message="Your appointment with Dr. Sara Malik is confirmed for tomorrow at 10:00 AM.",
+            ),
+            dict(
+                patient="patient_ali",
+                type=Notification.NotificationType.LAB_REPORT_AVAILABLE,
+                title="Lab report available",
+                message="Your Complete Blood Count report is now available on your dashboard.",
+            ),
+            dict(
+                patient="patient_ali",
+                type=Notification.NotificationType.PRESCRIPTION_AVAILABLE,
+                title="Prescription available",
+                message="Dr. Bilal Ahmed has added a new prescription to your record.",
+            ),
         ]
         created_count = 0
         for spec in specs:
             _, created = Notification.objects.get_or_create(
-                recipient=patients[spec["patient"]].user, notification_type=spec["type"], title=spec["title"],
+                recipient=patients[spec["patient"]].user,
+                notification_type=spec["type"],
+                title=spec["title"],
                 defaults={"message": spec["message"]},
             )
             created_count += int(created)
@@ -360,10 +565,16 @@ class Command(BaseCommand):
         from triage.rules_engine import run_rule_based_triage
 
         triage_specs = [
-            dict(patient="patient_ali", symptoms_text="I have a mild fever and a cough since yesterday.",
-                 ai_summary="The patient reports a mild fever and cough that started yesterday."),
-            dict(patient="patient_zain", symptoms_text="Severe chest pain and shortness of breath since this morning.",
-                 ai_summary="The patient reports severe chest pain with shortness of breath, onset this morning."),
+            dict(
+                patient="patient_ali",
+                symptoms_text="I have a mild fever and a cough since yesterday.",
+                ai_summary="The patient reports a mild fever and cough that started yesterday.",
+            ),
+            dict(
+                patient="patient_zain",
+                symptoms_text="Severe chest pain and shortness of breath since this morning.",
+                ai_summary="The patient reports severe chest pain with shortness of breath, onset this morning.",
+            ),
         ]
         created_count = 0
         for spec in triage_specs:
@@ -372,8 +583,13 @@ class Command(BaseCommand):
                 continue
             matched, urgency, department, reasoning = run_rule_based_triage(spec["symptoms_text"])
             assessment = TriageAssessment.objects.create(
-                patient=patient, symptoms_text=spec["symptoms_text"], urgency=urgency, suggested_department=department,
-                reasoning=reasoning, ai_summary=spec["ai_summary"], ai_provider_used="ollama",
+                patient=patient,
+                symptoms_text=spec["symptoms_text"],
+                urgency=urgency,
+                suggested_department=department,
+                reasoning=reasoning,
+                ai_summary=spec["ai_summary"],
+                ai_provider_used="ollama",
                 ai_summary_status=TriageAssessment.AISummaryStatus.READY,
             )
             assessment.detected_symptoms.set(matched)
@@ -381,12 +597,14 @@ class Command(BaseCommand):
         self.stdout.write(f"Triage examples: {len(triage_specs)} ready ({created_count} newly created).")
 
         assistant_spec = dict(
-            patient="patient_ali", message="When is my next appointment?",
+            patient="patient_ali",
+            message="When is my next appointment?",
             response="Your next appointment is with Dr. Ayesha Khan (Cardiology). Check your Appointments tab for the exact date and time.",
         )
         patient = patients[assistant_spec["patient"]]
         _, created = AssistantQueryLog.objects.get_or_create(
-            user=patient.user, message=assistant_spec["message"],
+            user=patient.user,
+            message=assistant_spec["message"],
             defaults={"response": assistant_spec["response"], "provider_used": "ollama"},
         )
         self.stdout.write(f"Assistant query example: ready ({'newly created' if created else 'already existed'}).")
@@ -398,7 +616,9 @@ class Command(BaseCommand):
         self.stdout.write("-" * 50)
         self.stdout.write(f"{'Admin':<14} {admin.username:<16} {admin.get_full_name()}")
         for doctor in doctors.values():
-            self.stdout.write(f"{'Doctor':<14} {doctor.user.username:<16} {doctor.user.get_full_name()} ({doctor.specialization})")
+            self.stdout.write(
+                f"{'Doctor':<14} {doctor.user.username:<16} {doctor.user.get_full_name()} ({doctor.specialization})"
+            )
         self.stdout.write(f"{'Receptionist':<14} {receptionist.username:<16} {receptionist.get_full_name()}")
         self.stdout.write(f"{'Lab Staff':<14} {lab_staff.username:<16} {lab_staff.get_full_name()}")
         for patient in patients.values():
