@@ -1,9 +1,20 @@
 import json
+import re
 
 from .models import AuditLog
 
 MUTATING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 LOGIN_PATH_SUFFIX = "/api/accounts/login/"
+
+OBJECT_ID_PATTERN = re.compile(r"/(\d+)/(?:[a-z0-9-]+/)?$")
+
+# Never persist these into the audit trail, even redacted-in-place — the log itself must not become
+# a secrets store. Matched case-insensitively against JSON body keys at any nesting depth.
+REDACTED_KEYS = {
+    "password", "new_password", "old_password", "current_password",
+    "otp_code", "recovery_code", "token", "refresh", "access",
+    "groq_api_key", "secret", "otp_secret",
+}
 
 
 def _client_ip(request):
@@ -11,6 +22,32 @@ def _client_ip(request):
     if forwarded:
         return forwarded.split(",")[0].strip()
     return request.META.get("REMOTE_ADDR")
+
+
+def _extract_object_id(path):
+    match = OBJECT_ID_PATTERN.search(path)
+    return match.group(1) if match else ""
+
+
+def _redact(value):
+    if isinstance(value, dict):
+        return {
+            key: ("***REDACTED***" if key.lower() in REDACTED_KEYS else _redact(val))
+            for key, val in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact(item) for item in value]
+    return value
+
+
+def _redacted_body(request):
+    try:
+        body = json.loads(request.body or b"{}")
+    except Exception:
+        return {}
+    if not isinstance(body, dict):
+        return {}
+    return _redact(body)
 
 
 def _attempted_username(request):
@@ -79,6 +116,8 @@ class AuditLogMiddleware:
                 action=AuditLog.Action.REQUEST,
                 method=request.method,
                 path=path,
+                object_id=_extract_object_id(path),
+                changes=_redacted_body(request) if request.method != "DELETE" else {},
                 status_code=response.status_code,
                 ip_address=_client_ip(request),
                 user_agent=user_agent,

@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from .models import User
 from .tasks import send_account_email
+from .token_utils import blacklist_all_outstanding_tokens
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -70,4 +71,7 @@ class PasswordResetConfirmView(APIView):
 
         user.set_password(data["new_password"])
         user.save(update_fields=["password"])
+        # A password reset almost always means "I think someone else might have access" — kill every
+        # other session's ability to refresh, not just the one making this request.
+        blacklist_all_outstanding_tokens(user)
         return Response({"detail": "Password reset successfully."})

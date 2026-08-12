@@ -5,6 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .recovery_codes import generate_recovery_codes
+
 
 class TwoFactorSetupResponseSerializer(serializers.Serializer):
     secret = serializers.CharField()
@@ -43,7 +45,16 @@ class TwoFactorStatusResponseSerializer(serializers.Serializer):
     is_2fa_enabled = serializers.BooleanField()
 
 
-@extend_schema(tags=["Accounts"], request=TwoFactorEnableSerializer, responses=TwoFactorStatusResponseSerializer, description="Confirms a TOTP code from an authenticator app and turns 2FA on for the account.")
+class TwoFactorEnableResponseSerializer(serializers.Serializer):
+    is_2fa_enabled = serializers.BooleanField()
+    recovery_codes = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Shown once. Store these somewhere safe — each is single-use and lets you log in "
+        "without your authenticator app if you lose it. Regenerate via /2fa/recovery-codes/regenerate/.",
+    )
+
+
+@extend_schema(tags=["Accounts"], request=TwoFactorEnableSerializer, responses=TwoFactorEnableResponseSerializer, description="Confirms a TOTP code from an authenticator app, turns 2FA on, and issues one-time recovery codes (shown only in this response).")
 class TwoFactorEnableView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -61,7 +72,20 @@ class TwoFactorEnableView(APIView):
 
         user.is_2fa_enabled = True
         user.save(update_fields=["is_2fa_enabled"])
-        return Response({"is_2fa_enabled": True})
+        recovery_codes = generate_recovery_codes(user)
+        return Response({"is_2fa_enabled": True, "recovery_codes": recovery_codes})
+
+
+@extend_schema(tags=["Accounts"], request=None, responses=TwoFactorEnableResponseSerializer, description="Invalidates all existing recovery codes and issues a fresh batch (shown only in this response). Requires 2FA to already be enabled.")
+class TwoFactorRecoveryCodesRegenerateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if not user.is_2fa_enabled:
+            return Response({"detail": "2FA is not enabled on this account."}, status=status.HTTP_400_BAD_REQUEST)
+        recovery_codes = generate_recovery_codes(user)
+        return Response({"is_2fa_enabled": True, "recovery_codes": recovery_codes})
 
 
 class TwoFactorDisableSerializer(serializers.Serializer):
@@ -83,4 +107,5 @@ class TwoFactorDisableView(APIView):
         user.is_2fa_enabled = False
         user.otp_secret = ""
         user.save(update_fields=["is_2fa_enabled", "otp_secret"])
+        user.recovery_codes.all().delete()
         return Response({"is_2fa_enabled": False})

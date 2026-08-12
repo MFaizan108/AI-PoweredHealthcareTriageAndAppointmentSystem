@@ -46,12 +46,12 @@ class TriageAssessmentSerializer(serializers.ModelSerializer):
         fields = [
             "id", "patient", "patient_detail", "appointment", "symptoms_text", "detected_symptoms",
             "urgency", "suggested_department", "suggested_department_detail", "reasoning",
-            "ai_summary", "ai_provider_used", "ai_summary_error", "disclaimer",
+            "ai_summary", "ai_provider_used", "ai_summary_error", "ai_summary_status", "disclaimer",
             "reviewed_by", "clinician_agrees", "clinician_notes", "reviewed_at", "created_at",
         ]
         read_only_fields = [
             "id", "detected_symptoms", "urgency", "suggested_department", "reasoning",
-            "ai_summary", "ai_provider_used", "ai_summary_error",
+            "ai_summary", "ai_provider_used", "ai_summary_error", "ai_summary_status",
             "reviewed_by", "clinician_agrees", "clinician_notes", "reviewed_at", "created_at",
         ]
 

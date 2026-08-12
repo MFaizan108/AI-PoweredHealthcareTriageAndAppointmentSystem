@@ -34,6 +34,12 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
 
+# CORS: no origins are trusted by default (safe default for a backend with no frontend yet — Phase 11).
+# Set CORS_ALLOWED_ORIGINS as a comma-separated list (e.g. "https://app.example.com") when a frontend
+# is added; deliberately never wildcarded (`CORS_ALLOW_ALL_ORIGINS`) since requests carry JWTs.
+CORS_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()]
+CORS_ALLOW_CREDENTIALS = True
+
 
 # Application definition
 
@@ -46,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
@@ -66,12 +73,19 @@ INSTALLED_APPS = [
     'messaging',
     'analytics',
     'ai_assistant',
+    'health',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
+    # First middleware in the list = outermost wrapper = measures true end-to-end request time
+    # (every other middleware's overhead included) and still sees the final response object/status
+    # code on the way back out.
+    'health.metrics.PrometheusMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.csp.ContentSecurityPolicyMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # must be before CommonMiddleware per django-cors-headers docs
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -114,6 +128,13 @@ if os.environ.get('POSTGRES_HOST'):
             'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
             'HOST': os.environ.get('POSTGRES_HOST'),
             'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+            # Without this Django opens a brand-new TCP+auth handshake to Postgres on every single
+            # request (CONN_MAX_AGE defaults to 0). Under concurrent load that connection setup cost
+            # dominates response time — reusing connections for 60s cut booking/slot-lookup latency
+            # substantially in local load testing. CONN_HEALTH_CHECKS avoids handing out a connection
+            # that died during its idle period.
+            'CONN_MAX_AGE': 60,
+            'CONN_HEALTH_CHECKS': True,
         }
     }
 else:
@@ -125,6 +146,20 @@ else:
     }
 
 
+# Password hashing
+# Argon2 first: Django's own recommended primary hasher when argon2-cffi is installed — on this
+# hardware, Django's default PBKDF2 (1.5M iterations) took 8+ seconds per hash, which made
+# registration/login/password-reset/staff-creation unusably slow under any concurrent load.
+# Existing PBKDF2 hashes (if any) still verify fine and get silently upgraded to Argon2 on next login.
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.ScryptPasswordHasher',
+]
+
+
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
@@ -133,7 +168,10 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
     {
+        # Django's own default is 8 — raised for a healthcare app handling patient data, per standard
+        # (e.g. OWASP) guidance of >=10 characters when there's no compensating hardware MFA factor.
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 10},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -215,6 +253,13 @@ REST_FRAMEWORK = {
         'user': '120/minute',
         'login': '5/minute',
     },
+    # Governs how DRF's throttles derive the client IP from X-Forwarded-For (rest_framework.throttling
+    # .SimpleRateThrottle.get_ident). Left unset (None), DRF trusts X-Forwarded-For unconditionally —
+    # meaning any client can bypass the login/anon rate limits just by sending a fake header. 0 means
+    # "trust no proxy hops, always use the direct connection's REMOTE_ADDR" (correct for local dev,
+    # where nothing sits in front of Django). In production (DEBUG=False), the Nginx layer from Phase 9
+    # adds exactly one real hop, hence 1.
+    'NUM_PROXIES': 0 if DEBUG else 1,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
@@ -265,6 +310,30 @@ SIMPLE_JWT = {
 }
 
 
+# Cache (Redis if REDIS_CACHE_URL is set — mirrors the POSTGRES_HOST pattern above; falls back to
+# Django's in-process LocMemCache when it isn't, so local dev/tests work without Redis running).
+_redis_cache_url = os.environ.get('REDIS_CACHE_URL')
+if _redis_cache_url:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': _redis_cache_url,
+            'TIMEOUT': 300,
+            'OPTIONS': {
+                # Every DRF throttle check plus every cache read/write (departments, doctor
+                # availability, AI provider settings) touches Redis. A capped connection_pool_kwargs
+                # max_connections was tried here and made things worse under load (redis-py's sync
+                # ConnectionPool raised IndexError instead of blocking/erroring cleanly once the cap was
+                # hit) — left uncapped (redis-py's own default), with just a bounded socket timeout so a
+                # single slow Redis round-trip can't hang a request indefinitely.
+                'socket_timeout': 5,
+                'socket_connect_timeout': 5,
+                'retry_on_timeout': True,
+            },
+        }
+    }
+
+
 # Celery
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6381/0')
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6381/0')
@@ -273,6 +342,55 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
+
+
+# Logging — stdout only (12-factor style: let Docker/the process supervisor own log storage/rotation
+# rather than writing files inside the container, which would need their own volume + rotation
+# policy). `DJANGO_LOG_LEVEL` defaults to INFO; requests that raise a 5xx always log at ERROR with a
+# full traceback regardless, via django.request's own propagation.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'django.request': {
+            # Always surface unhandled view exceptions/5xxs, even if DJANGO_LOG_LEVEL is set above WARNING.
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+    },
+}
 
 
 # Production security hardening (no-ops in DEBUG so local dev over plain HTTP still works)
@@ -285,3 +403,24 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = 'same-origin'
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+
+
+# Content-Security-Policy (Django 6.1's built-in django.middleware.csp.ContentSecurityPolicyMiddleware).
+# Applied in both DEBUG and production: this is primarily a JSON API, so CSP mainly protects the Django
+# admin and the Swagger/ReDoc API-docs pages (the only HTML this backend serves). cdn.jsdelivr.net is
+# allow-listed because drf-spectacular's Swagger UI/ReDoc load their JS/CSS bundles from there.
+from django.utils.csp import CSP  # noqa: E402
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF, "https://cdn.jsdelivr.net"],
+    "style-src": [CSP.SELF, "https://cdn.jsdelivr.net", CSP.UNSAFE_INLINE],
+    "img-src": [CSP.SELF, "data:", "https://cdn.jsdelivr.net"],
+    "font-src": [CSP.SELF, "data:"],
+    "connect-src": [CSP.SELF],
+    "frame-ancestors": [CSP.NONE],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.SELF],
+}

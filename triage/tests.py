@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APITestCase
 
 from departments.models import Department
@@ -72,6 +72,7 @@ class RuleBasedTriageTests(TestCase):
         self.assertEqual(urgency, TriageAssessment.Urgency.HIGH)
 
 
+@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
 class TriageAssessAPITests(APITestCase):
     def setUp(self):
         from accounts.models import User
@@ -104,6 +105,7 @@ class TriageAssessAPITests(APITestCase):
         self.assertEqual(resp.data["urgency"], "emergency")
         self.assertEqual(resp.data["disclaimer"], TriageAssessment.DISCLAIMER)
         self.assertEqual(resp.data["ai_summary"], "")
+        self.assertEqual(resp.data["ai_summary_status"], "not_requested")
 
     def test_assess_degrades_gracefully_when_llm_call_fails(self):
         from unittest.mock import patch
@@ -118,6 +120,37 @@ class TriageAssessAPITests(APITestCase):
         self.assertEqual(resp.data["urgency"], "low")
         self.assertEqual(resp.data["ai_summary"], "")
         self.assertNotEqual(resp.data["ai_summary_error"], "")
+        self.assertEqual(resp.data["ai_summary_status"], "failed")
+
+    def test_ai_summary_generation_runs_as_a_background_task_not_inline(self):
+        """The view must hand off to Celery rather than calling the LLM inline — this is the whole point
+        of Phase 7's async triage change (a slow/unreachable LLM must never block the HTTP response)."""
+        from unittest.mock import patch
+
+        self.client.force_authenticate(self.patient_user)
+        with patch("triage.views.generate_ai_summary_task.delay") as mock_delay:
+            resp = self.client.post(
+                "/api/triage/assess/", {"symptoms_text": "fever", "use_ai_summary": True}, format="json"
+            )
+        self.assertEqual(resp.status_code, 201, resp.data)
+        mock_delay.assert_called_once_with(resp.data["id"])
+        # Without the (mocked-away) task ever running, the summary must still be unset/pending — proving
+        # the rule-based response does not wait on it.
+        self.assertEqual(resp.data["ai_summary_status"], "pending")
+
+    def test_successful_ai_summary_marks_status_ready(self):
+        from unittest.mock import patch
+
+        self.client.force_authenticate(self.patient_user)
+        with patch("triage.llm.requests.post") as mock_post:
+            mock_post.return_value.raise_for_status.return_value = None
+            mock_post.return_value.json.return_value = {"response": "Patient reports mild fever."}
+            resp = self.client.post(
+                "/api/triage/assess/", {"symptoms_text": "fever", "use_ai_summary": True}, format="json"
+            )
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data["ai_summary_status"], "ready")
+        self.assertEqual(resp.data["ai_summary"], "Patient reports mild fever.")
 
     def test_patient_cannot_create_assessment_for_another_patient(self):
         self.client.force_authenticate(self.patient_user)

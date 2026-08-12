@@ -1,5 +1,6 @@
 import datetime
 
+from django.core.cache import cache
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -119,3 +120,40 @@ class DoctorLeaveTests(APITestCase):
             {"doctor": other_doctor.id, "start_date": "2026-09-01", "end_date": "2026-09-05"},
         )
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class DoctorAvailabilityCacheTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.doctor_user = User.objects.create_user(username="cache_doc", email="cache_doc@example.com", password="x", role=User.Role.DOCTOR)
+        self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
+
+    def test_editing_availability_invalidates_the_cached_schedule(self):
+        from appointments.services import doctor_availability_cache_key, get_doctor_weekday_availabilities
+
+        availability = DoctorAvailability.objects.create(
+            doctor=self.doctor, weekday=0, start_time=datetime.time(9, 0), end_time=datetime.time(11, 0),
+        )
+        first = get_doctor_weekday_availabilities(self.doctor, 0)
+        self.assertEqual(len(first), 1)
+        self.assertIsNotNone(cache.get(doctor_availability_cache_key(self.doctor.id, 0)))
+
+        availability.start_time = datetime.time(10, 0)
+        availability.save()
+
+        # The signal in doctors/signals.py must have busted the cache — a stale read would still show 09:00.
+        self.assertIsNone(cache.get(doctor_availability_cache_key(self.doctor.id, 0)))
+        refreshed = get_doctor_weekday_availabilities(self.doctor, 0)
+        self.assertEqual(refreshed[0].start_time, datetime.time(10, 0))
+
+    def test_deleting_availability_invalidates_the_cache(self):
+        from appointments.services import doctor_availability_cache_key, get_doctor_weekday_availabilities
+
+        availability = DoctorAvailability.objects.create(
+            doctor=self.doctor, weekday=2, start_time=datetime.time(9, 0), end_time=datetime.time(11, 0),
+        )
+        get_doctor_weekday_availabilities(self.doctor, 2)
+        self.assertIsNotNone(cache.get(doctor_availability_cache_key(self.doctor.id, 2)))
+
+        availability.delete()
+        self.assertIsNone(cache.get(doctor_availability_cache_key(self.doctor.id, 2)))

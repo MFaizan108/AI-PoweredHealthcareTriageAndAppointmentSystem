@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.db import models
 
 from appointments.models import Appointment
@@ -32,6 +33,8 @@ class AIProviderSettings(models.Model):
     timeout_seconds = models.PositiveIntegerField(default=60)
     updated_at = models.DateTimeField(auto_now=True)
 
+    CACHE_KEY = "ai_provider_settings:solo"
+
     class Meta:
         verbose_name = "AI Provider Settings"
         verbose_name_plural = "AI Provider Settings"
@@ -39,13 +42,20 @@ class AIProviderSettings(models.Model):
     def save(self, *args, **kwargs):
         self.pk = 1
         super().save(*args, **kwargs)
+        cache.delete(self.CACHE_KEY)
 
     def delete(self, *args, **kwargs):
         pass  # singleton — never actually deleted
 
     @classmethod
     def get_solo(cls):
+        # Hit on every triage assessment and every AI-assistant question — cache it, since it only
+        # changes when an admin edits it via the admin panel or the settings API.
+        cached = cache.get(cls.CACHE_KEY)
+        if cached is not None:
+            return cached
         obj, _ = cls.objects.get_or_create(pk=1)
+        cache.set(cls.CACHE_KEY, obj, 300)
         return obj
 
     def __str__(self):
@@ -98,6 +108,12 @@ class TriageAssessment(models.Model):
         HIGH = "high", "High"
         EMERGENCY = "emergency", "Emergency"
 
+    class AISummaryStatus(models.TextChoices):
+        NOT_REQUESTED = "not_requested", "Not Requested"
+        PENDING = "pending", "Pending"
+        READY = "ready", "Ready"
+        FAILED = "failed", "Failed"
+
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="triage_assessments")
     appointment = models.ForeignKey(
         Appointment, on_delete=models.SET_NULL, null=True, blank=True, related_name="triage_assessments"
@@ -112,6 +128,11 @@ class TriageAssessment(models.Model):
     ai_summary = models.TextField(blank=True)
     ai_provider_used = models.CharField(max_length=20, blank=True)
     ai_summary_error = models.CharField(max_length=255, blank=True)
+    ai_summary_status = models.CharField(
+        max_length=20, choices=AISummaryStatus.choices, default=AISummaryStatus.NOT_REQUESTED,
+        help_text="The rule-based result above is always immediate; the AI summary is generated in the "
+        "background (Celery) so a slow/unreachable LLM never blocks the triage response.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Clinician review — lets a doctor record whether they agreed with the AI's urgency,
@@ -131,6 +152,9 @@ class TriageAssessment(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["urgency"], name="triage_urgency_idx"),
+        ]
 
     def __str__(self):
         return f"Triage for {self.patient} - {self.urgency}"

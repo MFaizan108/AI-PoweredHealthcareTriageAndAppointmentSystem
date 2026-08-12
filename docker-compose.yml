@@ -1,5 +1,12 @@
 name: ai_healthcare_triage
 
+# This base file is production-safe by default: db/redis/web publish NO host ports (only reachable
+# on the internal Docker network — nginx is the sole public entrypoint, see the `nginx` service).
+# `docker-compose.override.yml` is auto-merged by plain `docker compose ...` and adds back the host
+# port mappings local dev relies on (host-side manage.py connecting straight to db/redis, hitting
+# web on :8000 without nginx) — see that file for why. A real deployment should run
+# `docker compose -f docker-compose.yml --profile production up -d` to skip the override.
+
 services:
   db:
     image: postgres:16-alpine
@@ -25,13 +32,12 @@ services:
 
   web:
     build: .
-    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn ai_healthcare_triage_appointment_system.wsgi:application --bind 0.0.0.0:8000 --workers 3"
-    ports:
-      - "8000:8000"
+    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn ai_healthcare_triage_appointment_system.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile - --error-logfile -"
     environment: &django_env
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY must be set}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       POSTGRES_DB: ${POSTGRES_DB:-healthcare_triage}
       POSTGRES_USER: ${POSTGRES_USER:-healthcare_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
@@ -39,11 +45,15 @@ services:
       POSTGRES_PORT: 5432
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
+      REDIS_CACHE_URL: redis://redis:6379/1
       EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
       EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
       EMAIL_HOST_NAME: ${EMAIL_HOST_NAME:-Healthcare}
+      DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
     volumes:
       - media_data:/app/media
+      - static_data:/app/staticfiles
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -56,6 +66,7 @@ services:
     environment: *django_env
     volumes:
       - media_data:/app/media
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -66,12 +77,104 @@ services:
     build: .
     command: celery -A ai_healthcare_triage_appointment_system beat --loglevel=info
     environment: *django_env
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
 
+  # --- Production-only: public entrypoint (HTTPS termination + static/media + reverse proxy) ---
+  # Not started by a bare `docker compose up` — requires `--profile production`, and DOMAIN must
+  # already resolve to this host. See scripts/init-letsencrypt.sh before the first run.
+  nginx:
+    image: nginx:1.27-alpine
+    profiles: ["production"]
+    environment:
+      # Not `${DOMAIN:?...}` (hard-required) — Compose interpolates every service's environment
+      # during any `up`/`config` call regardless of profile, so a required var here would break
+      # plain dev commands like `docker compose up -d db redis` too. scripts/init-letsencrypt.sh
+      # and the `production` profile's own docs enforce that DOMAIN is actually set instead.
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - static_data:/app/staticfiles:ro
+      - media_data:/app/media:ro
+      - certbot_conf:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+    depends_on:
+      - web
+
+  certbot:
+    image: certbot/certbot
+    profiles: ["production"]
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done"
+
+  # --- Monitoring (opt-in via --profile monitoring; independent of --profile production, so it
+  # can also be pointed at a local dev stack) ---
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    profiles: ["monitoring"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    profiles: ["monitoring"]
+    volumes:
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    profiles: ["monitoring"]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      # Not hard-required at the Compose level (same reasoning as nginx's DOMAIN above) — Compose
+      # interpolates every service's env on any `up`/`config` call regardless of profile, so this
+      # must default rather than require. Grafana itself still refuses a blank/default password.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Celery-specific task/worker dashboard (task success/failure counts, queue depth, worker
+  # status) — a separate concern from the Prometheus/Grafana metrics stack above.
+  flower:
+    build: .
+    profiles: ["monitoring"]
+    command: >
+      sh -c "celery -A ai_healthcare_triage_appointment_system flower --port=5555
+      --basic_auth=$${FLOWER_BASIC_AUTH:?FLOWER_BASIC_AUTH must be set, e.g. user:password}"
+    environment: *django_env
+    ports:
+      - "5555:5555"
+    restart: unless-stopped
+    depends_on:
+      - redis
+
 volumes:
   postgres_data:
   media_data:
+  static_data:
+  certbot_conf:
+  certbot_www:
+  prometheus_data:
+  grafana_data:

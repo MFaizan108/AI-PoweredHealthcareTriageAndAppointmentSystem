@@ -12,10 +12,10 @@ from appointments.models import Appointment
 from doctors.models import Doctor
 from patients.models import Patient
 
-from .llm import generate_ai_summary
 from .models import AIProviderSettings, EmergencyGuidance, Symptom, TriageAssessment
 from .permissions import CanAccessTriageAssessment, IsAdminOnly, IsAdminOrReadOnlyForAuthenticated
 from .rules_engine import run_rule_based_triage
+from .tasks import generate_ai_summary_task
 from .serializers import (
     AIProviderSettingsSerializer,
     EmergencyGuidanceSerializer,
@@ -163,12 +163,7 @@ class TriageAssessView(APIView):
 
         matched_symptoms, urgency, department, reasoning = run_rule_based_triage(symptoms_text)
 
-        ai_summary, ai_provider_used, ai_summary_error = None, None, None
-        if data.get("use_ai_summary", True):
-            ai_summary, ai_provider_used, ai_summary_error = generate_ai_summary(
-                symptoms_text, [s.name for s in matched_symptoms], urgency
-            )
-
+        want_ai_summary = data.get("use_ai_summary", True)
         assessment = TriageAssessment.objects.create(
             patient=patient,
             appointment=appointment,
@@ -176,10 +171,18 @@ class TriageAssessView(APIView):
             urgency=urgency,
             suggested_department=department,
             reasoning=reasoning,
-            ai_summary=ai_summary or "",
-            ai_provider_used=ai_provider_used or "",
-            ai_summary_error=ai_summary_error or "",
+            ai_summary_status=(
+                TriageAssessment.AISummaryStatus.PENDING if want_ai_summary else TriageAssessment.AISummaryStatus.NOT_REQUESTED
+            ),
         )
         assessment.detected_symptoms.set(matched_symptoms)
+
+        if want_ai_summary:
+            # Rule-based urgency/department is already saved and about to be returned — the LLM summary
+            # runs in the background (see triage/tasks.py) so a slow/unreachable LLM never blocks this
+            # response. In tests (CELERY_TASK_ALWAYS_EAGER=True) this runs synchronously before .delay()
+            # returns, so refreshing below already picks up the finished result.
+            generate_ai_summary_task.delay(assessment.id)
+            assessment.refresh_from_db()
 
         return Response(TriageAssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED)

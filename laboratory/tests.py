@@ -1,3 +1,4 @@
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -103,3 +104,38 @@ class LabReportTests(APITestCase):
         self.client.force_authenticate(self.patient_user)
         resp = self.client.get("/api/lab/reports/")
         self.assertEqual(resp.data["count"], 1)
+
+    def test_report_upload_rejects_disallowed_file_extension(self):
+        self.client.force_authenticate(self.lab_staff)
+        bad_file = SimpleUploadedFile("malware.exe", b"not a real report", content_type="application/octet-stream")
+        resp = self.client.post(
+            "/api/lab/reports/", {"lab_test": self.lab_test.id, "report_file": bad_file}, format="multipart",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_report_upload_accepts_pdf(self):
+        self.client.force_authenticate(self.lab_staff)
+        good_file = SimpleUploadedFile("report.pdf", b"%PDF-1.4 fake pdf content", content_type="application/pdf")
+        resp = self.client.post(
+            "/api/lab/reports/", {"lab_test": self.lab_test.id, "report_file": good_file}, format="multipart",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
+
+
+class MaxFileSizeValidatorTests(APITestCase):
+    def test_rejects_file_over_the_limit(self):
+        from django.core.exceptions import ValidationError
+
+        from ai_healthcare_triage_appointment_system.validators import MaxFileSizeValidator
+
+        validator = MaxFileSizeValidator(max_mb=1)
+        oversized = SimpleUploadedFile("big.pdf", b"x" * (2 * 1024 * 1024))
+        with self.assertRaises(ValidationError):
+            validator(oversized)
+
+    def test_allows_file_under_the_limit(self):
+        from ai_healthcare_triage_appointment_system.validators import MaxFileSizeValidator
+
+        validator = MaxFileSizeValidator(max_mb=1)
+        small = SimpleUploadedFile("small.pdf", b"x" * 1024)
+        validator(small)  # must not raise

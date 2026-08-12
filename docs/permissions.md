@@ -80,6 +80,16 @@ planned automated test matrix that pins this behavior down (`Patient A asks abou
 ## Audit trail
 
 `audit_logs.middleware.AuditLogMiddleware` logs every mutating request (`POST`/`PUT`/`PATCH`/`DELETE`) and
-every login attempt, capturing: who (user, or `null` for anonymous/failed logins), what (method + path),
-when (timestamp), from where (IP + user agent), which object (when derivable), and outcome. Only admins can
-read the audit log via `/api/audit-logs/`.
+every login attempt, capturing:
+- **who**: `user` (or `null` + `username_attempted` for anonymous/failed logins)
+- **what**: `method` + `path`
+- **when**: `created_at`
+- **from where**: `ip_address` + `user_agent`
+- **which object**: `object_id` — best-effort, the trailing numeric ID in the URL path
+- **what changed**: `changes` — the submitted JSON request body, with sensitive keys (`password`,
+  `otp_code`, `recovery_code`, `token`, `groq_api_key`, ...) replaced with `"***REDACTED***"` at any
+  nesting depth. This captures *what was submitted*, not a computed before/after diff — non-JSON
+  request bodies (e.g. multipart file uploads) are logged with `changes: {}`.
+
+Only admins can read the audit log, via `/api/audit-logs/` (filterable by `?action=`, `?user=`,
+`?method=`, `?object_id=`).

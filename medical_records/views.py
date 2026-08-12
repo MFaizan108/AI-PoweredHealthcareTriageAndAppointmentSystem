@@ -13,7 +13,8 @@ from .serializers import DiagnosisSerializer, MedicalRecordSerializer
 
 
 class MedicalRecordViewSet(viewsets.ModelViewSet):
-    queryset = MedicalRecord.objects.select_related("patient__user", "doctor__user")
+    # prefetch_related("diagnoses") avoids an N+1 query per record — MedicalRecordSerializer nests the full diagnoses list.
+    queryset = MedicalRecord.objects.select_related("patient__user", "doctor__user").prefetch_related("diagnoses")
     serializer_class = MedicalRecordSerializer
     permission_classes = [IsOwnerPatientOrTreatingDoctorOrAdmin]
 

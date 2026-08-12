@@ -21,6 +21,10 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            # Matches the recipient-scoped, optionally unread-filtered list view.
+            models.Index(fields=["recipient", "is_read", "-created_at"], name="notif_recipient_unread_idx"),
+        ]
 
     def __str__(self):
         return f"{self.notification_type} -> {self.recipient}"

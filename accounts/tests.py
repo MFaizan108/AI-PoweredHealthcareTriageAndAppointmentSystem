@@ -211,3 +211,141 @@ class PasswordResetTests(APITestCase):
             {"uid": uid, "token": "bad-token", "new_password": "BrandNewPass456!"},
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reset_blacklists_all_outstanding_refresh_tokens(self):
+        from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        old_refresh = RefreshToken.for_user(self.user)
+        self.assertTrue(OutstandingToken.objects.filter(jti=old_refresh["jti"]).exists())
+        self.assertFalse(BlacklistedToken.objects.filter(token__jti=old_refresh["jti"]).exists())
+
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        self.client.post(
+            "/api/accounts/password-reset/confirm/",
+            {"uid": uid, "token": token, "new_password": "BrandNewPass456!"},
+        )
+
+        self.assertTrue(BlacklistedToken.objects.filter(token__jti=old_refresh["jti"]).exists())
+        refresh_attempt = self.client.post("/api/accounts/login/refresh/", {"refresh": str(old_refresh)})
+        self.assertEqual(refresh_attempt.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+@override_settings(**TEST_OVERRIDES)
+class LogoutAllDevicesTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(
+            username="multidevice", email="multidevice@example.com", password="MultiDevice123!", role=User.Role.PATIENT
+        )
+
+    def test_logout_all_blacklists_every_outstanding_token(self):
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        session1 = self.client.post("/api/accounts/login/", {"username": "multidevice", "password": "MultiDevice123!"})
+        session2_refresh = RefreshToken.for_user(self.user)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {session1.data['access']}")
+        resp = self.client.post("/api/accounts/logout-all/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(resp.data["sessions_invalidated"], 2)
+
+        refresh_attempt = self.client.post("/api/accounts/login/refresh/", {"refresh": str(session2_refresh)})
+        self.assertEqual(refresh_attempt.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_all_requires_authentication(self):
+        resp = self.client.post("/api/accounts/logout-all/")
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+@override_settings(**TEST_OVERRIDES)
+class TwoFactorRecoveryCodeTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(
+            username="recoveryuser", email="recoveryuser@example.com", password="RecoveryPass123!", role=User.Role.PATIENT
+        )
+
+    def _enable_2fa(self):
+        self.client.force_authenticate(self.user)
+        setup = self.client.post("/api/accounts/2fa/setup/")
+        secret = setup.data["secret"]
+        enable = self.client.post("/api/accounts/2fa/enable/", {"otp_code": pyotp.TOTP(secret).now()})
+        self.client.force_authenticate(None)
+        return enable.data["recovery_codes"]
+
+    def test_enabling_2fa_returns_recovery_codes(self):
+        codes = self._enable_2fa()
+        self.assertEqual(len(codes), 8)
+        self.assertEqual(len(set(codes)), 8)  # all unique
+
+    def test_login_with_recovery_code_succeeds_without_otp(self):
+        codes = self._enable_2fa()
+        resp = self.client.post(
+            "/api/accounts/login/", {"username": "recoveryuser", "password": "RecoveryPass123!", "recovery_code": codes[0]}
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+
+    def test_recovery_code_is_single_use(self):
+        codes = self._enable_2fa()
+        first = self.client.post(
+            "/api/accounts/login/", {"username": "recoveryuser", "password": "RecoveryPass123!", "recovery_code": codes[0]}
+        )
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+
+        second = self.client.post(
+            "/api/accounts/login/", {"username": "recoveryuser", "password": "RecoveryPass123!", "recovery_code": codes[0]}
+        )
+        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_invalid_recovery_code_rejected(self):
+        self._enable_2fa()
+        resp = self.client.post(
+            "/api/accounts/login/", {"username": "recoveryuser", "password": "RecoveryPass123!", "recovery_code": "NOTREAL-CODE0000"}
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_regenerate_invalidates_old_codes(self):
+        old_codes = self._enable_2fa()
+
+        self.client.force_authenticate(self.user)
+        regen = self.client.post("/api/accounts/2fa/recovery-codes/regenerate/")
+        self.assertEqual(regen.status_code, status.HTTP_200_OK)
+        new_codes = regen.data["recovery_codes"]
+        self.client.force_authenticate(None)
+
+        self.assertNotEqual(set(old_codes), set(new_codes))
+        stale_attempt = self.client.post(
+            "/api/accounts/login/", {"username": "recoveryuser", "password": "RecoveryPass123!", "recovery_code": old_codes[0]}
+        )
+        self.assertEqual(stale_attempt.status_code, status.HTTP_400_BAD_REQUEST)
+
+        fresh_attempt = self.client.post(
+            "/api/accounts/login/", {"username": "recoveryuser", "password": "RecoveryPass123!", "recovery_code": new_codes[0]}
+        )
+        self.assertEqual(fresh_attempt.status_code, status.HTTP_200_OK)
+
+    def test_disabling_2fa_clears_recovery_codes(self):
+        from .models import TwoFactorRecoveryCode
+
+        self._enable_2fa()
+        self.assertTrue(TwoFactorRecoveryCode.objects.filter(user=self.user).exists())
+
+        self.client.force_authenticate(self.user)
+        self.client.post("/api/accounts/2fa/disable/", {"password": "RecoveryPass123!"})
+        self.assertFalse(TwoFactorRecoveryCode.objects.filter(user=self.user).exists())
+
+
+@override_settings(**TEST_OVERRIDES)
+class PasswordPolicyTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_short_password_rejected_on_registration(self):
+        resp = self.client.post(
+            "/api/accounts/register/",
+            {"username": "shortpw", "email": "shortpw@example.com", "password": "Sh0rt!"},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", resp.data)

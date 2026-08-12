@@ -8,3 +8,4 @@ staticfiles/
 .git/
 project_blueprint/
 *.log
+backups/

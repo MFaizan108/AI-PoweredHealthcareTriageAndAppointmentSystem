@@ -27,6 +27,9 @@ class Invoice(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status"], name="invoice_status_idx"),
+        ]
 
     def save(self, *args, **kwargs):
         self.total_amount = max(self.consultation_fee + self.lab_charges - self.discount, 0)

@@ -1,0 +1,30 @@
+# Auto-merged by plain `docker compose ...` (Compose loads docker-compose.yml +
+# docker-compose.override.yml together unless you pass explicit -f flags). Local-dev-only host
+# port mappings so `manage.py runserver` on the host machine can reach db/redis directly, and so
+# `web` is reachable without going through nginx (which isn't part of the default dev workflow).
+#
+# Deploying for real? Skip this file: `docker compose -f docker-compose.yml --profile production up -d`.
+
+services:
+  db:
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+
+  redis:
+    ports:
+      - "6381:6379"
+
+  web:
+    ports:
+      - "8000:8000"
+
+  # Only actually created if --profile monitoring is also passed; harmless otherwise. Direct
+  # host access to Prometheus/cAdvisor's own UIs is dev-only — in production, view everything
+  # through Grafana (already published on :3000 in the base file).
+  prometheus:
+    ports:
+      - "9090:9090"
+
+  cadvisor:
+    ports:
+      - "8080:8080"

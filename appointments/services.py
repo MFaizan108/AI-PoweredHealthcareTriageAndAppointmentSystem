@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+from django.core.cache import cache
+
 from doctors.models import DoctorAvailability, DoctorLeave
 
 from .models import Appointment
@@ -13,6 +15,22 @@ def is_doctor_on_leave(doctor, date):
     return DoctorLeave.objects.filter(doctor=doctor, start_date__lte=date, end_date__gte=date).exists()
 
 
+def doctor_availability_cache_key(doctor_id, weekday):
+    return f"doctor_availability:{doctor_id}:{weekday}"
+
+
+def get_doctor_weekday_availabilities(doctor, weekday):
+    """The weekly schedule template changes rarely but is read on every slot lookup and every
+    booking validation — cache it per (doctor, weekday), invalidated by the signal in doctors/signals.py.
+    """
+    cache_key = doctor_availability_cache_key(doctor.id, weekday)
+    availabilities = cache.get(cache_key)
+    if availabilities is None:
+        availabilities = list(DoctorAvailability.objects.filter(doctor=doctor, weekday=weekday, is_active=True))
+        cache.set(cache_key, availabilities, 300)
+    return availabilities
+
+
 def get_available_slots(doctor, date):
     """Generate the day's slots for a doctor and mark which ones are already booked.
 
@@ -22,7 +40,7 @@ def get_available_slots(doctor, date):
         return []
 
     weekday = date.weekday()  # Monday=0 ... Sunday=6, matches DoctorAvailability.Weekday
-    availabilities = DoctorAvailability.objects.filter(doctor=doctor, weekday=weekday, is_active=True)
+    availabilities = get_doctor_weekday_availabilities(doctor, weekday)
 
     booked_start_times = set(
         Appointment.objects.filter(doctor=doctor, appointment_date=date)

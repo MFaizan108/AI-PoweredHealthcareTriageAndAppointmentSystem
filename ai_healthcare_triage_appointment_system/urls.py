@@ -4,8 +4,14 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+from health.metrics import metrics_view
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('health/', include('health.urls')),
+    # Scraped by Prometheus over the internal Docker network only — nginx explicitly blocks
+    # external access to this path in production (see nginx/templates/default.conf.template).
+    path('metrics', metrics_view, name='prometheus-metrics'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),

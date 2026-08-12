@@ -42,6 +42,32 @@ class AuditLogMiddlewareTests(APITestCase):
         entry = AuditLog.objects.filter(action=AuditLog.Action.LOGIN_SUCCESS, user=self.patient).first()
         self.assertIsNotNone(entry)
 
+    def test_object_id_is_extracted_from_the_url_path(self):
+        self.client.force_authenticate(self.admin)
+        self.client.patch("/api/departments/999/", {"name": "Renamed"}, format="json")
+        entry = AuditLog.objects.filter(method="PATCH", path="/api/departments/999/").first()
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.object_id, "999")
+
+    def test_request_body_is_captured_as_changes(self):
+        self.client.force_authenticate(self.admin)
+        self.client.post("/api/departments/", {"name": "Radiology"}, format="json")
+        entry = AuditLog.objects.filter(method="POST", path="/api/departments/").first()
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.changes.get("name"), "Radiology")
+
+    def test_sensitive_fields_are_redacted_in_changes(self):
+        self.client.force_authenticate(self.admin)
+        self.client.post(
+            "/api/accounts/staff/create/",
+            {"username": "newstaffmember", "email": "newstaffmember@example.com", "password": "SuperSecret123!", "role": "doctor"},
+            format="json",
+        )
+        entry = AuditLog.objects.filter(method="POST", path="/api/accounts/staff/create/").first()
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.changes.get("password"), "***REDACTED***")
+        self.assertEqual(entry.changes.get("username"), "newstaffmember")
+
 
 @override_settings(**TEST_OVERRIDES)
 class AuditLogAccessTests(APITestCase):

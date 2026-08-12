@@ -35,6 +35,11 @@ class Appointment(models.Model):
 
     class Meta:
         ordering = ["-appointment_date", "slot_start_time"]
+        indexes = [
+            # Hot path: slot-availability checks, booking validation, and the queue view all filter by doctor+date.
+            models.Index(fields=["doctor", "appointment_date"], name="appt_doctor_date_idx"),
+            models.Index(fields=["patient", "-appointment_date"], name="appt_patient_date_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["doctor", "appointment_date", "slot_start_time"],
@@ -63,6 +68,10 @@ class Waitlist(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+        indexes = [
+            # Matches the "first in line" lookup on appointment cancellation: doctor+date+status, ordered by created_at.
+            models.Index(fields=["doctor", "preferred_date", "status"], name="wl_doctor_date_status_idx"),
+        ]
 
     def __str__(self):
         return f"{self.patient} waiting for {self.doctor} on {self.preferred_date} ({self.status})"

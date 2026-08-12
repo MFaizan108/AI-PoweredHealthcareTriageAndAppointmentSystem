@@ -1,5 +1,6 @@
 import datetime
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -52,3 +53,21 @@ class MessagingPermissionTests(APITestCase):
         self.client.force_authenticate(self.outsider)
         resp = self.client.get(f"/api/messages/?appointment={self.appointment.id}")
         self.assertEqual(resp.data["count"], 0)
+
+    def test_message_attachment_rejects_disallowed_extension(self):
+        self.client.force_authenticate(self.patient_user)
+        bad_file = SimpleUploadedFile("script.sh", b"#!/bin/sh\necho hi", content_type="application/octet-stream")
+        resp = self.client.post(
+            "/api/messages/", {"appointment": self.appointment.id, "body": "See attached", "attachment": bad_file},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_message_attachment_accepts_allowed_extension(self):
+        self.client.force_authenticate(self.patient_user)
+        good_file = SimpleUploadedFile("scan.jpg", b"fake jpeg bytes", content_type="image/jpeg")
+        resp = self.client.post(
+            "/api/messages/", {"appointment": self.appointment.id, "body": "See attached", "attachment": good_file},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)

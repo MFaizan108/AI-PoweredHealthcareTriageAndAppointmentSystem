@@ -1,0 +1,6 @@
+# Only needed to run load_tests/locustfile.py locally — NOT part of the application's runtime
+# dependencies, so kept separate from the root requirements.txt (locust pulls in Flask/gevent/etc.
+# which the Django app itself never uses).
+#
+# Install with: pip install -r load_tests/requirements.txt
+locust

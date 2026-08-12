@@ -93,6 +93,8 @@ Abhi 38/38 tests hain. Is phase ka target sirf number barhana nahi, balkay criti
 
 ## Phase 7 — Performance & Scalability ⚡
 
+**Status: ✅ Implemented (2026-08-12)** — DB indexes + N+1 fixes, Redis caching (departments/doctor-availability/AI-provider-settings) with signal-based invalidation, async triage AI summary via Celery, `CONN_MAX_AGE`, and a locust load-test harness. Found and fixed a genuinely broken password hasher (Argon2 migration — see report) and an IP-throttle-bypass gap (`NUM_PROXIES`). 150/150 tests passing.
+
 Ab system ko load ke under test karo.
 
 **Database**
@@ -124,6 +126,8 @@ Ab system ko load ke under test karo.
 ---
 
 ## Phase 8 — Advanced Security Audit 🔐
+
+**Status: ✅ Implemented (2026-08-12)** — 2FA recovery codes, logout-all-devices + auto session-kill on password reset, CORS (safe default: no origins trusted), CSP, file-upload validation, stronger password policy, and audit-log object/change tracking. 174/174 tests passing.
 
 Healthcare project ke liye ye must-have phase hai.
 
@@ -167,6 +171,13 @@ Healthcare project ke liye ye must-have phase hai.
 
 ## Phase 9 — Production Deployment 🐳
 
+**Status: ✅ Implemented (2026-08-12)** — Nginx reverse proxy + HTTPS via Let's Encrypt (certbot,
+dummy-cert bootstrap script), a prod-safe `docker-compose.yml` (no host ports for db/redis/web —
+nginx is the only public entrypoint) with all local-dev host-port mappings moved into an
+auto-merged `docker-compose.override.yml`, stdout-based structured logging, static/media served
+directly by nginx from shared volumes, and manual DB backup/restore scripts. 174/174 tests still
+passing. See [docs/deployment.md](../docs/deployment.md).
+
 Ab local Docker stack ko real deployment mein le jao.
 
 **Architecture**
@@ -206,6 +217,16 @@ Ab local Docker stack ko real deployment mein le jao.
 ---
 
 ## Phase 10 — Monitoring & Observability 📈
+
+**Status: ✅ Implemented (2026-08-12)** — `/health/`, `/health/db/`, `/health/redis/`,
+`/health/celery/` (plain Django views, no auth/throttle, never crash — always return clean
+healthy/unhealthy JSON); a hand-rolled `prometheus_client` `/metrics` endpoint (request
+count-by-status + latency histogram, i.e. error rate + API response time) rather than the
+`django-prometheus` package, which pins `Django<6.1` and would have downgraded the project;
+Prometheus + Grafana (pre-provisioned dashboard) + cAdvisor (per-container CPU/RAM/disk) + Flower
+(Celery task/worker dashboard) as an opt-in `--profile monitoring` compose stack. `/metrics`
+blocked at the nginx layer (Prometheus reaches it over the internal network only). 183/183 tests
+passing. See [docs/monitoring.md](../docs/monitoring.md).
 
 Production mein sirf deploy karna enough nahi.
 

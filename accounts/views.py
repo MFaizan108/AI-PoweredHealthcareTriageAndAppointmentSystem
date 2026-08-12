@@ -10,6 +10,7 @@ from .models import User
 from .permissions import IsAdmin, IsAdminOrReceptionist
 from .serializers import CustomTokenObtainPairSerializer, RegisterSerializer, StaffCreateSerializer, UserSerializer
 from .throttles import LoginRateThrottle
+from .token_utils import blacklist_all_outstanding_tokens
 
 
 @extend_schema(tags=["Accounts"])
@@ -43,6 +44,29 @@ class LogoutView(APIView):
         except TokenError:
             return Response({"detail": "Invalid or already-blacklisted token."}, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_205_RESET_CONTENT)
+
+
+class LogoutAllResponseSerializer(serializers.Serializer):
+    sessions_invalidated = serializers.IntegerField()
+
+
+@extend_schema(
+    tags=["Accounts"],
+    request=None,
+    responses=LogoutAllResponseSerializer,
+    description=(
+        "Blacklists every refresh token ever issued to the current account — use after a lost/stolen "
+        "device. Any already-issued access token remains valid for up to its own 30-minute lifetime "
+        "(inherent to stateless JWTs); this stops it from being renewed, it doesn't retroactively "
+        "revoke it."
+    ),
+)
+class LogoutAllDevicesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        count = blacklist_all_outstanding_tokens(request.user)
+        return Response({"sessions_invalidated": count})
 
 
 @extend_schema(tags=["Accounts"], description="Public self-registration — always creates a `patient` account; the `role` field, if sent, is ignored.")

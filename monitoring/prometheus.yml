@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # Django's own request-count/latency metrics — see health/metrics.py. Reached over the internal
+  # Docker network directly (nginx blocks external access to /metrics — see
+  # nginx/templates/default.conf.template).
+  - job_name: django
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["web:8000"]
+
+  # Per-container CPU/RAM/disk/network for every service in the compose project.
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]

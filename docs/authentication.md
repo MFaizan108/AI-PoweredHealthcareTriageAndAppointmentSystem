@@ -58,18 +58,32 @@ POST /api/accounts/logout/     (requires Authorization header)
 Blacklists the given refresh token immediately. Returns `205 Reset Content`. An already-blacklisted or
 malformed token returns `400 Bad Request`.
 
-## 5. Two-Factor Authentication (TOTP)
+```
+POST /api/accounts/logout-all/   (requires Authorization header, no body)
+```
+Blacklists **every** outstanding refresh token for the account — use for "log out of all devices" after
+a lost/stolen device. An already-issued access token stays valid for up to its own 30-minute lifetime
+regardless (JWTs are stateless — this stops it being renewed, it can't retroactively revoke it). A
+successful `password-reset/confirm/` also triggers this automatically.
+
+## 5. Two-Factor Authentication (TOTP) + recovery codes
 
 ```
 POST /api/accounts/2fa/setup/     -> { secret, provisioning_uri }   (scan into an authenticator app)
 POST /api/accounts/2fa/enable/    { "otp_code": "..." }             (confirms setup, turns 2FA on)
 POST /api/accounts/2fa/disable/   { "password": "..." }             (turns 2FA off)
+POST /api/accounts/2fa/recovery-codes/regenerate/   (requires 2FA already enabled)
 ```
-`2fa/setup/` can be called again to regenerate the secret before it's enabled. There is currently no
-separate backup-code/recovery flow — if a user loses their authenticator device, an admin must disable
-2FA on their behalf via the admin panel (`User.is_2fa_enabled` / `otp_secret`). See
-[../project_blueprint/21_roadmap_phase5_to_20.md](../project_blueprint/21_roadmap_phase5_to_20.md) Phase 8
-for the planned 2FA recovery strategy.
+`2fa/setup/` can be called again to regenerate the secret before it's enabled.
+
+`2fa/enable/` and the regenerate endpoint both return `recovery_codes`: 8 single-use backup codes,
+shown **only in that response** (only the hash is stored). If the authenticator device is lost, log in
+with `recovery_code` instead of `otp_code`:
+```json
+{ "username": "...", "password": "...", "recovery_code": "A1B2C3D4-E5F6A7B8" }
+```
+Each code works once; regenerating invalidates every previously-issued code. Disabling 2FA deletes all
+outstanding recovery codes too.
 
 ## 6. Email verification
 
@@ -99,6 +113,6 @@ GET /api/accounts/login-history/     (current user's own successful-login histor
 
 ## Session invalidation
 
-There are no server-side sessions for API auth (JWT is stateless). "Logging out everywhere" is not yet a
-single-call operation — see the Phase 8 security audit item on session invalidation for the planned
-approach (e.g. blacklisting all outstanding refresh tokens for a user, or a token-version field on `User`).
+There are no server-side sessions for API auth (JWT is stateless). See `POST /api/accounts/logout-all/`
+above — it blacklists every outstanding refresh token for the account, and runs automatically after a
+password reset.

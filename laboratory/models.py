@@ -1,9 +1,13 @@
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 from django.db import models
 
+from ai_healthcare_triage_appointment_system.validators import MaxFileSizeValidator
 from appointments.models import Appointment
 from doctors.models import Doctor
 from patients.models import Patient
+
+ALLOWED_REPORT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png"]
 
 
 class LabTest(models.Model):
@@ -27,6 +31,9 @@ class LabTest(models.Model):
 
     class Meta:
         ordering = ["-requested_at"]
+        indexes = [
+            models.Index(fields=["status"], name="labtest_status_idx"),
+        ]
 
     def __str__(self):
         return f"{self.test_name} for {self.patient} ({self.status})"
@@ -34,7 +41,10 @@ class LabTest(models.Model):
 
 class LabReport(models.Model):
     lab_test = models.OneToOneField(LabTest, on_delete=models.CASCADE, related_name="report")
-    report_file = models.FileField(upload_to="lab_reports/%Y/%m/", blank=True, null=True)
+    report_file = models.FileField(
+        upload_to="lab_reports/%Y/%m/", blank=True, null=True,
+        validators=[FileExtensionValidator(ALLOWED_REPORT_EXTENSIONS), MaxFileSizeValidator(10)],
+    )
     result_summary = models.TextField(blank=True)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="uploaded_lab_reports")
     uploaded_at = models.DateTimeField(auto_now_add=True)

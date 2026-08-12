@@ -15,7 +15,9 @@ class AuditLogListView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        for param, field in (("action", "action"), ("user", "user_id"), ("method", "method")):
+        for param, field in (
+            ("action", "action"), ("user", "user_id"), ("method", "method"), ("object_id", "object_id"),
+        ):
             value = self.request.query_params.get(param)
             if value:
                 qs = qs.filter(**{field: value})

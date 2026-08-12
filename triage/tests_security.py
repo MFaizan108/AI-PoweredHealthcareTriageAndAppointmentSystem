@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.test import TestCase
 
 from .crypto import decrypt_value, encrypt_value
@@ -24,3 +25,26 @@ class GroqKeyEncryptionTests(TestCase):
 
         reloaded = AIProviderSettings.objects.get(pk=settings_obj.pk)
         self.assertEqual(reloaded.groq_api_key, "gsk_my_key")
+
+
+class AIProviderSettingsCacheTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_get_solo_is_cached_after_first_call(self):
+        AIProviderSettings.get_solo()
+        self.assertIsNotNone(cache.get(AIProviderSettings.CACHE_KEY))
+
+        with self.assertNumQueries(0):
+            AIProviderSettings.get_solo()
+
+    def test_saving_invalidates_the_cache(self):
+        obj = AIProviderSettings.get_solo()
+        self.assertIsNotNone(cache.get(AIProviderSettings.CACHE_KEY))
+
+        obj.provider = AIProviderSettings.Provider.GROQ
+        obj.save()
+        self.assertIsNone(cache.get(AIProviderSettings.CACHE_KEY))
+
+        refreshed = AIProviderSettings.get_solo()
+        self.assertEqual(refreshed.provider, AIProviderSettings.Provider.GROQ)
