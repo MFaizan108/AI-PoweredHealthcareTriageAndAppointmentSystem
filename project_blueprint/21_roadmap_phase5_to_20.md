@@ -431,6 +431,14 @@ Aur project immediately explore ho sake.
 
 ## Phase 14 — Documentation 📚
 
+**Status: ✅ Implemented (2026-08-13)** — a top-level `README.md` covering every section below,
+written from the actual current state of the project (env vars cross-checked against
+`settings.py`/`.env.example`, test count verified by running the suite, Python/Node versions
+verified against the venv and CI config) rather than aspirational copy. Fixed a forward-reference
+placeholder in `docs/architecture.md` that had pointed at this README before it existed. No
+Screenshots yet — deliberately left as "not yet captured, see Phase 18" rather than filled with
+placeholder images.
+
 Professional README.
 
 **README structure**

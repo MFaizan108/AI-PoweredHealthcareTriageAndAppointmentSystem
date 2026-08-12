@@ -60,7 +60,7 @@ Three layers, only the first of which is currently implemented as anything beyon
    urgency level (`emergency` / `high` / `moderate` / `low`) and a suggested department. This is the
    authoritative layer — it runs even if the LLM is unavailable.
 2. **Layer 2 — ML classifier**: **not implemented.** No validated clinical dataset exists to train one
-   responsibly; see [Limitations](../README.md#limitations) once the top-level README is written (Phase 14).
+   responsibly; see [Limitations](../README.md#limitations).
 3. **Layer 3 — LLM summary** (`triage/llm.py` + `triage/tasks.py`): takes the Layer 1 output and produces a
    short, plain-language explanation for the patient. Dual-provider — **Ollama** (local) or **Groq**
    (cloud), selected at runtime via the admin-editable, Redis-cached `AIProviderSettings` singleton. Runs
