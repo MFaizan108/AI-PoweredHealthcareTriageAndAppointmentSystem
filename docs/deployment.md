@@ -77,6 +77,14 @@ real one.
 | `DOMAIN` | ✅ (production profile) | Feeds nginx + certbot — see above |
 | `EMAIL` | ✅ (production profile, init script only) | Let's Encrypt account/expiry-notice email |
 
+## Frontend
+
+The `nginx` service builds from `frontend/Dockerfile` (not the stock `nginx` image) — a two-stage
+build that compiles the React app (`npm run build`) and bakes the static output into the nginx
+image alongside the templated proxy config. There's no separate frontend container/service: one
+nginx serves the compiled SPA *and* terminates TLS *and* reverse-proxies `/api`, `/admin`,
+`/health` to Django. See [frontend.md](frontend.md).
+
 ## Static & media files
 
 Django's `collectstatic` (run automatically by `web`'s startup command) writes into the

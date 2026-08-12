@@ -6,17 +6,18 @@
                     Internet
                        │
                        ▼
-                    Nginx            (HTTPS termination, static/media, reverse proxy — production only)
-                       │
-                       ▼
-                 Django / Gunicorn   (REST API, JWT auth, RBAC, throttling, audit middleware)
-                       │
-        ┌──────────────┼──────────────┐
-        ▼              ▼              ▼
-   PostgreSQL        Redis          Celery Worker
-   (isolated          (cache +           │
-    container)         Celery broker)    ▼
-                                      Celery Beat  (hourly appointment-reminder schedule)
+                    Nginx            (HTTPS termination, serves the React build, reverse-proxies
+                       │              /api|/admin|/health to Django — production only)
+        ┌──────────────┴──────────────┐
+        ▼                             ▼
+  React SPA (static)           Django / Gunicorn   (REST API, JWT auth, RBAC, throttling, audit middleware)
+                                       │
+                       ┌───────────────┼──────────────┐
+                       ▼               ▼              ▼
+                  PostgreSQL         Redis          Celery Worker
+                  (isolated          (cache +            │
+                   container)        Celery broker)      ▼
+                                                     Celery Beat  (hourly appointment-reminder schedule)
 ```
 
 In local dev, Postgres/Redis run in isolated Docker containers (unique project name and ports —
@@ -46,6 +47,9 @@ without one leaking into the other (dev never publishes an internet-facing port;
 | `analytics` | Read-only aggregation endpoints for admin dashboards |
 | `audit_logs` | Middleware-driven audit trail |
 | `health` | `/health/*` liveness endpoints + `/metrics` (Prometheus) — see [monitoring.md](monitoring.md) |
+
+`frontend/` (outside the Django project, a separate React/TypeScript codebase) is the UI —
+see [frontend.md](frontend.md).
 
 ## AI architecture (triage)
 

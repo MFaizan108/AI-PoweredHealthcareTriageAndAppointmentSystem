@@ -267,6 +267,20 @@ Example response:
 
 ## Phase 11 — Frontend / Professional Dashboards 🎨
 
+**Status: ✅ Implemented (2026-08-12)** — React 19 + TypeScript + Vite SPA (`frontend/`), auth
+(login incl. 2FA/recovery-code, register), and all five role dashboards: Patient, Doctor,
+Receptionist, Lab Staff, Admin. Production served by the same nginx that terminates TLS
+(`frontend/Dockerfile`, multi-stage build). Verified end-to-end in real headless-browser runs
+against the live backend — a full chained workflow across all five roles (Doctor sets availability
+→ Receptionist registers a walk-in patient and books them → Doctor treats them → Lab Staff
+processes and delivers the report → Admin creates the staff accounts and reviews
+analytics/audit-logs) completed with zero console/network errors on the final run. Added a
+self-service Doctor Availability page beyond the original section list — without it a new doctor
+account is permanently unbookable, a real functional gap rather than scope creep. Several real
+bugs found and fixed along the way (invalid `<div>`-in-`<p>` HTML nesting in the triage AI-summary
+pending state; `getAvailableSlots()` not deduping across overlapping `DoctorAvailability` windows).
+See [docs/frontend.md](../docs/frontend.md).
+
 Ab backend ko proper UI do.
 
 **Patient Dashboard**

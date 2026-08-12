@@ -58,11 +58,20 @@ server {
         access_log off;
     }
 
-    location / {
+    # Everything Django actually serves — the React app (below) owns every other path.
+    location ~ ^/(api|admin|health)(/|$) {
         proxy_pass http://web:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # React SPA (built by frontend/Dockerfile into this image's /usr/share/nginx/html) —
+    # try_files falls back to index.html so client-side routes (e.g. /patient/appointments)
+    # resolve on a hard refresh instead of 404ing.
+    root /usr/share/nginx/html;
+    location / {
+        try_files $uri $uri/ /index.html;
     }
 }

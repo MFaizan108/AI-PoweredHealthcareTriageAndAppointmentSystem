@@ -88,7 +88,7 @@ services:
   # Not started by a bare `docker compose up` — requires `--profile production`, and DOMAIN must
   # already resolve to this host. See scripts/init-letsencrypt.sh before the first run.
   nginx:
-    image: nginx:1.27-alpine
+    build: ./frontend
     profiles: ["production"]
     environment:
       # Not `${DOMAIN:?...}` (hard-required) — Compose interpolates every service's environment
