@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getAppointmentAnalytics, getPatientAnalytics } from "../../api/analytics";
 import { Card } from "../../components/ui/Card";
 import { Spinner } from "../../components/ui/Spinner";
+import { StatCard } from "../../components/ui/StatCard";
 
 export function AdminOverviewPage() {
   const patientStats = useQuery({ queryKey: ["analytics", "patients"], queryFn: getPatientAnalytics });
@@ -18,22 +19,19 @@ export function AdminOverviewPage() {
         <Spinner />
       ) : (
         <div className="stat-grid">
-          <Card title="Total patients">
-            <div className="stat-number">{patientStats.data?.total_patients ?? 0}</div>
-          </Card>
-          <Card title="New this month">
-            <div className="stat-number">{patientStats.data?.new_patients_this_month ?? 0}</div>
-          </Card>
-          <Card title="Total appointments">
-            <div className="stat-number">{appointmentStats.data?.total_appointments ?? 0}</div>
-          </Card>
-          <Card title="Avg. wait time">
-            <div className="stat-number">
-              {appointmentStats.data?.average_waiting_time_minutes != null
+          <StatCard icon="🧑‍🤝‍🧑" label="Total patients" value={patientStats.data?.total_patients ?? 0} />
+          <StatCard icon="✨" tone="accent" label="New this month" value={patientStats.data?.new_patients_this_month ?? 0} />
+          <StatCard icon="📅" tone="success" label="Total appointments" value={appointmentStats.data?.total_appointments ?? 0} />
+          <StatCard
+            icon="⏱️"
+            tone="warning"
+            label="Avg. wait time"
+            value={
+              appointmentStats.data?.average_waiting_time_minutes != null
                 ? `${appointmentStats.data.average_waiting_time_minutes}m`
-                : "-"}
-            </div>
-          </Card>
+                : "-"
+            }
+          />
         </div>
       )}
 

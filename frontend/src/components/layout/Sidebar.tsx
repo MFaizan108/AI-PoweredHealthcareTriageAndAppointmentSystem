@@ -6,9 +6,19 @@ export interface NavItem {
   icon: string;
 }
 
-export function Sidebar({ items, roleLabel }: { items: NavItem[]; roleLabel: string }) {
+export function Sidebar({
+  items,
+  roleLabel,
+  mobileOpen = false,
+  onNavigate,
+}: {
+  items: NavItem[];
+  roleLabel: string;
+  mobileOpen?: boolean;
+  onNavigate?: () => void;
+}) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${mobileOpen ? " sidebar-mobile-open" : ""}`}>
       <div className="sidebar-brand">
         <span className="sidebar-brand-mark">+</span>
         <div>
@@ -21,6 +31,7 @@ export function Sidebar({ items, roleLabel }: { items: NavItem[]; roleLabel: str
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={onNavigate}
             className={({ isActive }) => `sidebar-link${isActive ? " sidebar-link-active" : ""}`}
           >
             <span className="sidebar-link-icon" aria-hidden="true">

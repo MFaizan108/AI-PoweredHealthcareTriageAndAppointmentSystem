@@ -2,7 +2,15 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { NotificationBell } from "./NotificationBell";
 
-export function Topbar({ title, notificationsPath }: { title: string; notificationsPath: string }) {
+export function Topbar({
+  title,
+  notificationsPath,
+  onMenuClick,
+}: {
+  title: string;
+  notificationsPath: string;
+  onMenuClick?: () => void;
+}) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -15,7 +23,12 @@ export function Topbar({ title, notificationsPath }: { title: string; notificati
 
   return (
     <header className="topbar">
-      <h1 className="topbar-title">{title}</h1>
+      <div className="topbar-left">
+        <button type="button" className="topbar-menu-btn" onClick={onMenuClick} aria-label="Toggle navigation menu">
+          &#9776;
+        </button>
+        <h1 className="topbar-title">{title}</h1>
+      </div>
       <div className="topbar-actions">
         <NotificationBell notificationsPath={notificationsPath} />
         <span className="topbar-user">{fullName}</span>

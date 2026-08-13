@@ -3,7 +3,7 @@ import { useState } from "react";
 import { extractErrorMessage } from "../../api/client";
 import { getTriageAssessment, listEmergencyGuidance, listTriageAssessments, submitTriageAssessment } from "../../api/triage";
 import type { TriageAssessment } from "../../api/types";
-import { StatusBadge } from "../../components/ui/Badge";
+import { StatusBadge, statusTone } from "../../components/ui/Badge";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorBanner } from "../../components/ui/ErrorBanner";
@@ -36,26 +36,42 @@ function AISummaryBlock({ assessmentId, initial }: { assessmentId: number; initi
   );
 }
 
+const URGENCY_ICON: Record<string, string> = {
+  emergency: "🚨",
+  high: "⚠️",
+  moderate: "🟠",
+  low: "✅",
+};
+
+const URGENCY_LABEL: Record<string, string> = {
+  emergency: "Emergency — seek immediate care",
+  high: "High urgency",
+  moderate: "Moderate urgency",
+  low: "Low urgency",
+};
+
 function AssessmentResult({ assessment }: { assessment: TriageAssessment }) {
   const guidance = useQuery({ queryKey: ["emergency-guidance"], queryFn: listEmergencyGuidance });
   const matchedGuidance = guidance.data?.find((g) => g.urgency === assessment.urgency);
   const showGuidance = assessment.urgency === "high" || assessment.urgency === "emergency";
+  const tone = statusTone(assessment.urgency);
 
   return (
-    <Card
-      title={
-        <>
-          Result: <StatusBadge status={assessment.urgency} />
-        </>
-      }
-    >
+    <Card title="Step 2 · Result">
+      <div className={`urgency-banner urgency-banner-${tone}`}>
+        <span className="urgency-banner-icon" aria-hidden="true">
+          {URGENCY_ICON[assessment.urgency] ?? "ℹ️"}
+        </span>
+        <div>
+          <div className="urgency-banner-label">{URGENCY_LABEL[assessment.urgency] ?? assessment.urgency}</div>
+          {assessment.suggested_department_detail && (
+            <div className="urgency-banner-sub">Suggested department: {assessment.suggested_department_detail.name}</div>
+          )}
+        </div>
+      </div>
+
       <p className="disclaimer-text">{assessment.disclaimer}</p>
 
-      {assessment.suggested_department_detail && (
-        <p>
-          Suggested department: <strong>{assessment.suggested_department_detail.name}</strong>
-        </p>
-      )}
       {assessment.reasoning && <p className="muted-text">{assessment.reasoning}</p>}
 
       {assessment.detected_symptoms.length > 0 && (
@@ -103,7 +119,7 @@ export function TriagePage() {
     <div className="page-stack">
       <h2 className="page-heading">AI Symptom Triage</h2>
 
-      <Card title="Describe your symptoms">
+      <Card title="Step 1 · Describe your symptoms">
         {error && <ErrorBanner message={error} />}
         <textarea
           value={symptomsText}
@@ -127,7 +143,7 @@ export function TriagePage() {
 
       <Card title="Past assessments">
         {history.isLoading && <Spinner />}
-        {!history.isLoading && (history.data ?? []).length === 0 && <EmptyState message="No previous assessments." />}
+        {!history.isLoading && (history.data ?? []).length === 0 && <EmptyState icon="🩺" message="No previous assessments." />}
         {history.data?.map((a) => (
           <div key={a.id} className="list-row list-row-bordered">
             <div>

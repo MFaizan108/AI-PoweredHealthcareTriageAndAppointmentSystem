@@ -5,7 +5,7 @@ import { bookAppointment, cancelAppointment, getAvailableSlots, listAppointments
 import { extractErrorMessage } from "../../api/client";
 import { listDoctors } from "../../api/doctors";
 import type { Appointment } from "../../api/types";
-import { StatusBadge } from "../../components/ui/Badge";
+import { StatusBadge, statusTone } from "../../components/ui/Badge";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorBanner } from "../../components/ui/ErrorBanner";
@@ -70,7 +70,7 @@ function BookAppointmentForm({ onBooked }: { onBooked: () => void }) {
         <div className="field">
           <span>Available slots</span>
           {slots.isLoading && <Spinner />}
-          {slots.data && slots.data.length === 0 && <EmptyState message="No slots configured for this date." />}
+          {slots.data && slots.data.length === 0 && <EmptyState icon="🗓️" message="No slots configured for this date." />}
           <div className="slot-grid">
             {slots.data?.map((s) => (
               <button
@@ -117,7 +117,7 @@ function AppointmentRow({ appointment }: { appointment: Appointment }) {
   const canCancel = !["cancelled", "completed", "no_show"].includes(appointment.status);
 
   return (
-    <div className="list-row list-row-bordered">
+    <div className={`list-row list-row-bordered list-row-accent list-row-accent-${statusTone(appointment.status)}`}>
       <div>
         <div className="list-row-title">
           Dr. {appointment.doctor_detail.user.first_name} {appointment.doctor_detail.user.last_name}
@@ -171,7 +171,17 @@ export function AppointmentsPage() {
       <Card title="Your appointments">
         {appointments.isLoading && <Spinner />}
         {appointments.isError && <ErrorBanner message="Could not load appointments." />}
-        {!appointments.isLoading && sorted.length === 0 && <EmptyState message="No appointments yet." />}
+        {!appointments.isLoading && sorted.length === 0 && (
+          <EmptyState
+            icon="📅"
+            message="No appointments yet."
+            action={
+              <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+                Book your first appointment
+              </button>
+            }
+          />
+        )}
         {sorted.map((a) => (
           <AppointmentRow key={a.id} appointment={a} />
         ))}

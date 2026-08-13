@@ -30,9 +30,7 @@ export function WalkInRegistrationPage() {
       <h2 className="page-heading">Walk-in Registration</h2>
       <Card title="Register a new patient">
         {created && (
-          <div className="disclaimer-text" style={{ background: "var(--color-success-tint)", color: "var(--color-success)" }}>
-            Patient account "{created}" created. They can now be booked an appointment.
-          </div>
+          <ErrorBanner tone="success" message={`Patient account "${created}" created. They can now be booked an appointment.`} />
         )}
         {error && <ErrorBanner message={error} />}
 

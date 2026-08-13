@@ -4,7 +4,38 @@ import { is2FARequiredError } from "../../api/auth";
 import { extractErrorMessage } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
 import { ErrorBanner } from "../../components/ui/ErrorBanner";
+import { PasswordField } from "../../components/ui/PasswordField";
 import { landingPathForRole } from "../../roleRouting";
+
+function AuthVisual() {
+  return (
+    <div className="auth-visual" aria-hidden="true">
+      <div className="auth-visual-brand">
+        <span className="auth-visual-mark">+</span>
+        Healthcare Triage
+      </div>
+      <h2 className="auth-visual-title">Care decisions, backed by a rule engine you can audit.</h2>
+      <p className="auth-visual-subtitle">
+        Sign in to your dashboard — triage, appointments, records, prescriptions, lab reports, billing, and
+        messaging, scoped to exactly what your role can see.
+      </p>
+      <div className="auth-visual-features">
+        <div className="auth-visual-feature">
+          <span className="auth-visual-feature-icon">🩺</span>
+          Rule-based triage — the LLM only explains the result, never decides it
+        </div>
+        <div className="auth-visual-feature">
+          <span className="auth-visual-feature-icon">🛡️</span>
+          2FA, rate limiting, and a full audit trail on every action
+        </div>
+        <div className="auth-visual-feature">
+          <span className="auth-visual-feature-icon">📊</span>
+          Role dashboards for patients, doctors, staff, and admins
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function LoginPage() {
   const { user, login } = useAuth();
@@ -51,66 +82,66 @@ export function LoginPage() {
 
   return (
     <div className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1 className="auth-title">Healthcare Triage &amp; Appointment System</h1>
-        <p className="auth-subtitle">Sign in to continue</p>
+      <AuthVisual />
+      <div className="auth-form-panel">
+        <form className="auth-card" onSubmit={handleSubmit}>
+          <h1 className="auth-title">Healthcare Triage &amp; Appointment System</h1>
+          <p className="auth-subtitle">Sign in to continue</p>
 
-        {error && <ErrorBanner message={error} />}
+          {error && <ErrorBanner message={error} tone={needs2FA ? "info" : "danger"} />}
 
-        <label className="field">
-          <span>Username</span>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            required
-            disabled={needs2FA}
-          />
-        </label>
-        <label className="field">
-          <span>Password</span>
-          <input
-            type="password"
+          <label className="field">
+            <span>Username</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              required
+              disabled={needs2FA}
+            />
+          </label>
+          <PasswordField
+            label="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
             required
             disabled={needs2FA}
           />
-        </label>
 
-        {needs2FA && (
-          <label className="field">
-            <span>{use2FARecoveryCode ? "Recovery code" : "Authenticator code"}</span>
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              autoComplete="one-time-code"
-              placeholder={use2FARecoveryCode ? "XXXXXXXX-XXXXXXXX" : "123456"}
-              required
-              autoFocus
-            />
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => {
-                setUse2FARecoveryCode((v) => !v);
-                setCode("");
-              }}
-            >
-              {use2FARecoveryCode ? "Use authenticator code instead" : "Lost your device? Use a recovery code"}
-            </button>
-          </label>
-        )}
+          {needs2FA && (
+            <label className="field">
+              <span>{use2FARecoveryCode ? "Recovery code" : "Authenticator code"}</span>
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                autoComplete="one-time-code"
+                placeholder={use2FARecoveryCode ? "XXXXXXXX-XXXXXXXX" : "123456"}
+                required
+                autoFocus
+              />
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => {
+                  setUse2FARecoveryCode((v) => !v);
+                  setCode("");
+                }}
+              >
+                {use2FARecoveryCode ? "Use authenticator code instead" : "Lost your device? Use a recovery code"}
+              </button>
+            </label>
+          )}
 
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? "Signing in..." : "Sign in"}
-        </button>
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? "Signing in..." : "Sign in"}
+          </button>
 
-        <p className="auth-footer">
-          New patient? <Link to="/register">Create an account</Link>
-        </p>
-      </form>
+          <p className="auth-footer">
+            New patient? <Link to="/register">Create an account</Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

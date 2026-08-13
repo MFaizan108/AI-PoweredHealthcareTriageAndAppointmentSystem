@@ -3,6 +3,7 @@ import { getAIAnalytics, getAppointmentAnalytics, getPatientAnalytics } from "..
 import { Card } from "../../components/ui/Card";
 import { ErrorBanner } from "../../components/ui/ErrorBanner";
 import { Spinner } from "../../components/ui/Spinner";
+import { StatCard } from "../../components/ui/StatCard";
 
 function DictTable({ data }: { data: Record<string, number> }) {
   const entries = Object.entries(data);
@@ -38,18 +39,15 @@ export function AdminAnalyticsPage() {
       {!isLoading && !anyError && (
         <>
           <div className="stat-grid">
-            <Card title="Total patients">
-              <div className="stat-number">{patientStats.data?.total_patients}</div>
-            </Card>
-            <Card title="Returning patients">
-              <div className="stat-number">{patientStats.data?.returning_patients}</div>
-            </Card>
-            <Card title="Total appointments">
-              <div className="stat-number">{appointmentStats.data?.total_appointments}</div>
-            </Card>
-            <Card title="Emergency escalations">
-              <div className="stat-number">{aiStats.data?.emergency_escalations}</div>
-            </Card>
+            <StatCard icon="🧑‍🤝‍🧑" label="Total patients" value={patientStats.data?.total_patients ?? 0} />
+            <StatCard icon="🔁" tone="accent" label="Returning patients" value={patientStats.data?.returning_patients ?? 0} />
+            <StatCard icon="📅" tone="success" label="Total appointments" value={appointmentStats.data?.total_appointments ?? 0} />
+            <StatCard
+              icon="🚨"
+              tone={(aiStats.data?.emergency_escalations ?? 0) > 0 ? "danger" : "success"}
+              label="Emergency escalations"
+              value={aiStats.data?.emergency_escalations ?? 0}
+            />
           </div>
 
           <Card title="Patients by gender">

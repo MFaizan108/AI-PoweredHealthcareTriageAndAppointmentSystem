@@ -47,7 +47,7 @@ export function AdminSettingsPage() {
 
       <Card title="AI Provider (Triage Layer 3 summary)">
         {error && <ErrorBanner message={error} />}
-        {saved && <div className="disclaimer-text" style={{ background: "var(--color-success-tint)", color: "var(--color-success)" }}>Saved.</div>}
+        {saved && <ErrorBanner tone="success" message="Saved." />}
 
         <label className="checkbox-field">
           <input

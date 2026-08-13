@@ -7,6 +7,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { Card } from "../../components/ui/Card";
 import { StatusBadge } from "../../components/ui/Badge";
 import { Spinner } from "../../components/ui/Spinner";
+import { StatCard } from "../../components/ui/StatCard";
 import { formatDate, formatTime } from "../../format";
 
 export function PatientHome() {
@@ -30,15 +31,23 @@ export function PatientHome() {
       <h2 className="page-heading">Welcome back, {user?.first_name || user?.username}</h2>
 
       <div className="stat-grid">
-        <Card title="Upcoming appointments">
-          {appointments.isLoading ? <Spinner /> : <div className="stat-number">{upcoming.length}</div>}
-        </Card>
-        <Card title="Unread notifications">
-          {notifications.isLoading ? <Spinner /> : <div className="stat-number">{notifications.data?.length ?? 0}</div>}
-        </Card>
-        <Card title="Outstanding balance">
-          {invoices.isLoading ? <Spinner /> : <div className="stat-number">Rs {unpaidTotal.toFixed(2)}</div>}
-        </Card>
+        <StatCard
+          icon="📅"
+          label="Upcoming appointments"
+          value={appointments.isLoading ? <Spinner size={20} /> : upcoming.length}
+        />
+        <StatCard
+          icon="🔔"
+          tone="accent"
+          label="Unread notifications"
+          value={notifications.isLoading ? <Spinner size={20} /> : (notifications.data?.length ?? 0)}
+        />
+        <StatCard
+          icon="💳"
+          tone={unpaidTotal > 0 ? "warning" : "success"}
+          label="Outstanding balance"
+          value={invoices.isLoading ? <Spinner size={20} /> : `Rs ${unpaidTotal.toFixed(2)}`}
+        />
       </div>
 
       <Card

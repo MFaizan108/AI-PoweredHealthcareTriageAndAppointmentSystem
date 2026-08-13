@@ -4,6 +4,7 @@ import { listMedicalRecords } from "../../api/medicalRecords";
 import { listPrescriptions } from "../../api/prescriptions";
 import { Card } from "../../components/ui/Card";
 import { Spinner } from "../../components/ui/Spinner";
+import { StatCard } from "../../components/ui/StatCard";
 
 /** Admin-only analytics endpoints (/api/analytics/*) aren't reachable by a doctor account — this
  * derives a lightweight "my activity" summary client-side from the doctor's own already-scoped
@@ -31,18 +32,10 @@ export function DoctorActivityPage() {
       ) : (
         <>
           <div className="stat-grid">
-            <Card title="Total appointments">
-              <div className="stat-number">{appointments.data?.length ?? 0}</div>
-            </Card>
-            <Card title="Unique patients seen">
-              <div className="stat-number">{uniquePatients}</div>
-            </Card>
-            <Card title="Medical records written">
-              <div className="stat-number">{records.data?.length ?? 0}</div>
-            </Card>
-            <Card title="Prescriptions issued">
-              <div className="stat-number">{prescriptions.data?.length ?? 0}</div>
-            </Card>
+            <StatCard icon="📅" label="Total appointments" value={appointments.data?.length ?? 0} />
+            <StatCard icon="🧑‍🤝‍🧑" tone="accent" label="Unique patients seen" value={uniquePatients} />
+            <StatCard icon="📋" tone="success" label="Medical records written" value={records.data?.length ?? 0} />
+            <StatCard icon="💊" tone="warning" label="Prescriptions issued" value={prescriptions.data?.length ?? 0} />
           </div>
 
           <Card title="Appointments by status">
