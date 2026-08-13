@@ -1,4 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { extractErrorMessage } from "../../api/client";
+import { openAuthenticatedFile } from "../../api/downloads";
 import { listLabTests } from "../../api/laboratory";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -8,6 +11,7 @@ import { formatDateTime } from "../../format";
 
 export function LabReportsListPage() {
   const tests = useQuery({ queryKey: ["lab-tests", "completed"], queryFn: () => listLabTests({ status: "completed" }) });
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   return (
     <div className="page-stack">
@@ -15,6 +19,7 @@ export function LabReportsListPage() {
       <Card title="Completed tests">
         {tests.isLoading && <Spinner />}
         {tests.isError && <ErrorBanner message="Could not load reports." />}
+        {downloadError && <ErrorBanner message={downloadError} />}
         {!tests.isLoading && (tests.data ?? []).length === 0 && <EmptyState message="No completed reports yet." />}
         {tests.data?.map((t) => (
           <div key={t.id} className="list-row list-row-bordered">
@@ -28,9 +33,12 @@ export function LabReportsListPage() {
               {t.report?.result_summary && <div className="list-row-meta">{t.report.result_summary}</div>}
             </div>
             {t.report?.report_file && (
-              <a className="btn btn-secondary" href={t.report.report_file} target="_blank" rel="noreferrer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => openAuthenticatedFile(t.report!.report_file!).catch((e) => setDownloadError(extractErrorMessage(e)))}
+              >
                 View file
-              </a>
+              </button>
             )}
           </div>
         ))}

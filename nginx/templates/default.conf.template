@@ -52,11 +52,12 @@ server {
         access_log off;
     }
 
-    location /media/ {
-        alias /app/media/;
-        expires 7d;
-        access_log off;
-    }
+    # No /media/ alias, on purpose: lab reports and message attachments are PHI and must never be
+    # reachable by anyone who merely learns the URL. They're served by Django itself, behind the
+    # same DRF object-level permission check as the API resource they belong to — see
+    # laboratory.views.LabReportDownloadView / messaging.views.MessageAttachmentDownloadView, both
+    # of which already match the `/(api|...)` proxy rule below (they live under /api/lab/ and
+    # /api/messages/). See docs/security_review.md.
 
     # Everything Django actually serves — the React app (below) owns every other path.
     location ~ ^/(api|admin|health)(/|$) {

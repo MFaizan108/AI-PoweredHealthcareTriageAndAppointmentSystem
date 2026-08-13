@@ -131,3 +131,34 @@ class HospitalFAQTests(APITestCase):
         self.client.force_authenticate(self.admin)
         resp = self.client.post("/api/ai-assistant/faqs/", {"question": "Q?", "answer": "A."})
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
+
+
+@override_settings(**TEST_OVERRIDES)
+class AssistantAskThrottleTests(APITestCase):
+    """Every call triggers a real LLM request — must be throttled more strictly than ordinary
+    CRUD, or a single account could burn LLM cost/compute unbounded."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.patient_user = User.objects.create_user(
+            username="throttle_ask_pat", email="throttle_ask_pat@example.com", password="x", role=User.Role.PATIENT
+        )
+
+    @patch("ai_assistant.views.ask_llm")
+    def test_exceeding_the_ai_rate_limit_returns_429(self, mock_ask_llm):
+        from triage.throttles import AIRateThrottle
+
+        mock_ask_llm.return_value = ("Mock response.", "ollama", None)
+        # SimpleRateThrottle.THROTTLE_RATES is snapshotted from api_settings.DEFAULT_THROTTLE_RATES
+        # at import time, not re-read per request — override_settings(REST_FRAMEWORK=...) alone
+        # can't lower it for a fast test. Patch get_rate() directly (called fresh every request).
+        with patch.object(AIRateThrottle, "get_rate", return_value="2/min"):
+            self.client.force_authenticate(self.patient_user)
+            for _ in range(2):
+                resp = self.client.post("/api/ai-assistant/ask/", {"message": "Hello"})
+                self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+
+            resp = self.client.post("/api/ai-assistant/ask/", {"message": "Hello"})
+            self.assertEqual(resp.status_code, status.HTTP_429_TOO_MANY_REQUESTS, resp.data)

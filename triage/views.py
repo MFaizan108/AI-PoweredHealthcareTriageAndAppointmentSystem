@@ -24,6 +24,7 @@ from .serializers import (
     TriageReviewSerializer,
 )
 from .tasks import generate_ai_summary_task
+from .throttles import AIRateThrottle
 
 
 @extend_schema_view(
@@ -159,6 +160,13 @@ class TriageAssessView(APIView):
     """POST /api/triage/assess/ — run Layer 1 (rules) + Layer 3 (LLM summary) and persist the result."""
 
     permission_classes = [CanAccessTriageAssessment]
+    # Stricter than the generic per-user rate — every call here can trigger a real LLM request
+    # (default use_ai_summary=True). Applies uniformly rather than only when AI is actually
+    # requested, trading a little strictness for a throttle that can't be fooled by a malformed
+    # or unparseable request body. ScopedRateThrottle reads `view.throttle_scope`, not anything on
+    # the throttle class itself — both must be set (see accounts.views.LoginView for the same pattern).
+    throttle_classes = [AIRateThrottle]
+    throttle_scope = "ai"
 
     def post(self, request):
         payload = TriageRequestSerializer(data=request.data)

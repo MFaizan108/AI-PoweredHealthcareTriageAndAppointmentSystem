@@ -1,8 +1,13 @@
+import os
+
+from django.http import FileResponse, Http404
+from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from accounts.models import User
 from appointments.models import Appointment
@@ -49,3 +54,26 @@ class MessageViewSet(viewsets.ModelViewSet):
         message.is_read = True
         message.save(update_fields=["is_read"])
         return Response(self.get_serializer(message).data)
+
+
+@extend_schema(
+    tags=["messages"],
+    description="Streams the attachment file, gated by the same rule as the message itself (sender/recipient/admin).",
+)
+class MessageAttachmentDownloadView(APIView):
+    """The message resource's `attachment` field points here rather than a raw MEDIA_URL path — see
+    laboratory.views.LabReportDownloadView for the same reasoning (files must never be reachable
+    unauthenticated just because someone learned the path)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        message = Message.objects.select_related("sender", "recipient").filter(pk=pk).first()
+        if not message:
+            raise Http404
+        user = request.user
+        if not (user.is_superuser or user.role == User.Role.ADMIN or user.id in (message.sender_id, message.recipient_id)):
+            raise PermissionDenied("You do not have access to this message's attachment.")
+        if not message.attachment:
+            raise Http404("This message has no attachment.")
+        return FileResponse(message.attachment.open("rb"), as_attachment=True, filename=os.path.basename(message.attachment.name))

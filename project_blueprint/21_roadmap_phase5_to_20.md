@@ -555,6 +555,21 @@ Verify
 
 ## Phase 17 — Final Security & Architecture Review 🔍
 
+**Status: ✅ Implemented (2026-08-13)** — full audit across every area below; found and fixed
+four real issues: **[HIGH]** lab reports/message attachments were served completely
+unauthenticated via a raw `/media/` nginx location (any URL, once seen, worked forever for
+anyone — PHI with no real access control) — replaced with authenticated download endpoints
+reusing each resource's existing permission rule, and removed the nginx `/media/` location
+entirely; **[MEDIUM]** the audit log's `X-Forwarded-For` parsing trusted the first (client-
+spoofable) hop instead of the last (nginx-appended, trustworthy) one, undermining the audit
+trail's "From where?" column; **[MEDIUM]** the AI-triage and AI-assistant endpoints had no
+tighter throttle than generic CRUD despite triggering real LLM cost/compute; **[MEDIUM]** Django
+admin's own login form completely bypassed 2FA, letting any account — including a superuser —
+into `/admin/` with just a password. 198 → 218 tests (+20 for these fixes, including a real
+headless-browser verification of the media-file fix). See
+[docs/security_review.md](../docs/security_review.md) for full detail on each finding and what
+was checked and found already solid.
+
 Ek complete audit — is phase mein **new feature nahi, sirf weaknesses identify/fix karo**:
 ```
 Authentication       ✅

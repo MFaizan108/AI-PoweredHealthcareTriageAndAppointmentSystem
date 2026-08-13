@@ -89,9 +89,16 @@ nginx serves the compiled SPA *and* terminates TLS *and* reverse-proxies `/api`,
 
 Django's `collectstatic` (run automatically by `web`'s startup command) writes into the
 `static_data` named volume; the `nginx` service mounts that same volume read-only and serves
-`/static/*` directly — Gunicorn never touches static-file requests in production. `media_data`
-(lab report/attachment uploads) works the same way for `/media/*`. Both get `expires`/no-access-log
-treatment in the nginx config since they're immutable or access-controlled-elsewhere content.
+`/static/*` directly — Gunicorn never touches static-file requests in production, with an
+`expires`/no-access-log treatment since it's immutable, hashed-filename content.
+
+`media_data` (lab report/message-attachment uploads) is **not** given the same treatment —
+nginx has no `/media/` location and doesn't mount that volume at all. Those files are PHI, so
+they're served by Django itself (`laboratory.views.LabReportDownloadView` /
+`messaging.views.MessageAttachmentDownloadView`), behind the same object-level permission check
+as the API resource they belong to, rather than as an anonymously-fetchable static path. See
+[security_review.md](security_review.md) for the incident that made this the rule rather than an
+assumption.
 
 ## Logging
 

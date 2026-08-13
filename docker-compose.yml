@@ -84,7 +84,7 @@ services:
       redis:
         condition: service_healthy
 
-  # --- Production-only: public entrypoint (HTTPS termination + static/media + reverse proxy) ---
+  # --- Production-only: public entrypoint (HTTPS termination + static files + reverse proxy) ---
   # Not started by a bare `docker compose up` — requires `--profile production`, and DOMAIN must
   # already resolve to this host. See scripts/init-letsencrypt.sh before the first run.
   nginx:
@@ -99,7 +99,9 @@ services:
     volumes:
       - ./nginx/templates:/etc/nginx/templates:ro
       - static_data:/app/staticfiles:ro
-      - media_data:/app/media:ro
+      # No media_data mount, on purpose — nginx no longer serves /media/ directly (see
+      # nginx/templates/default.conf.template and docs/security_review.md); it doesn't need
+      # filesystem access to PHI it never touches.
       - certbot_conf:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
     ports:

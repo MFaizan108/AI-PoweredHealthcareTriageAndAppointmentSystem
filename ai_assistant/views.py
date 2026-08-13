@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from accounts.models import User
 from patients.models import Patient
 from triage.llm import ask_llm
+from triage.throttles import AIRateThrottle
 
 from .models import AssistantQueryLog, HospitalFAQ
 from .permissions import IsAdminOrReadOnlyForAuthenticated
@@ -44,6 +45,10 @@ class AssistantAskView(APIView):
     """User -> Permission Check -> Retriever -> Patient's authorized records / hospital FAQs -> LLM -> Response."""
 
     permission_classes = [IsAuthenticated]
+    # Every call triggers a real LLM request — see triage.throttles.AIRateThrottle. Both
+    # throttle_classes and throttle_scope are required (ScopedRateThrottle reads view.throttle_scope).
+    throttle_classes = [AIRateThrottle]
+    throttle_scope = "ai"
 
     def post(self, request):
         serializer = AskSerializer(data=request.data)

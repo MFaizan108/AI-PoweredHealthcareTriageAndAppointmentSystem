@@ -1,5 +1,11 @@
+import os
+
+from django.http import FileResponse, Http404
+from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 
 from accounts.models import User
 from doctors.models import Doctor
@@ -7,7 +13,7 @@ from notifications.models import Notification
 from notifications.services import notify
 
 from .models import LabReport, LabTest
-from .permissions import CanAccessLabReport, CanAccessLabTest
+from .permissions import CanAccessLabReport, CanAccessLabTest, _check_lab_access
 from .serializers import LabReportSerializer, LabTestSerializer
 
 
@@ -78,3 +84,29 @@ class LabReportViewSet(viewsets.ModelViewSet):
                 "Lab Report Ready for Review",
                 f"Lab report for '{lab_test.test_name}' ({lab_test.patient}) is ready for your review.",
             )
+
+
+@extend_schema(
+    tags=["lab"],
+    description=(
+        "Streams the report file itself, gated by the same access rule as the report resource "
+        "(CanAccessLabReport) — the file is never reachable via a public/unauthenticated media URL."
+    ),
+)
+class LabReportDownloadView(APIView):
+    """The report resource's `report_file` field points here rather than a raw MEDIA_URL path —
+    nginx's /media/ location has no concept of DRF permissions, so serving the file straight from
+    there would make every uploaded lab report reachable by anyone who ever saw its URL, forever."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        report = LabReport.objects.select_related("lab_test__patient__user", "lab_test__requested_by__user").filter(pk=pk).first()
+        if not report:
+            raise Http404
+        test = report.lab_test
+        if not _check_lab_access(request.user, test.patient, test.requested_by, "GET"):
+            raise PermissionDenied("You do not have access to this lab report.")
+        if not report.report_file:
+            raise Http404("No file has been uploaded for this report.")
+        return FileResponse(report.report_file.open("rb"), as_attachment=True, filename=os.path.basename(report.report_file.name))

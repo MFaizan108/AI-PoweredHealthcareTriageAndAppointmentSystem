@@ -1,6 +1,8 @@
 import json
 import re
 
+from rest_framework.settings import api_settings
+
 from .models import AuditLog
 
 MUTATING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -27,10 +29,19 @@ REDACTED_KEYS = {
 
 
 def _client_ip(request):
+    # Must mirror DRF's own SimpleRateThrottle.get_ident() exactly (same NUM_PROXIES setting) —
+    # nginx's X-Forwarded-For is client-supplied-then-appended-to
+    # ($proxy_add_x_forwarded_for), so trusting the *first* entry (as this used to) let any client
+    # put an arbitrary fake IP in the audit trail — including their own login-history page (see
+    # accounts.views.LoginHistoryView) — just by sending their own X-Forwarded-For header. Only the
+    # last `num_proxies` hops were actually appended by infrastructure we control; everything
+    # before that is untrusted, attacker-controlled input.
+    num_proxies = api_settings.NUM_PROXIES
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR")
+    if not forwarded or not num_proxies:
+        return request.META.get("REMOTE_ADDR")
+    addrs = [addr.strip() for addr in forwarded.split(",")]
+    return addrs[-min(num_proxies, len(addrs))]
 
 
 def _extract_object_id(path):

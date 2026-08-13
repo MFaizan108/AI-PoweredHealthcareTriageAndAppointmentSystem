@@ -152,6 +152,86 @@ class LabReportTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
 
 
+class LabReportDownloadTests(APITestCase):
+    """report_file must never be reachable via a raw, unauthenticated media URL — every download
+    goes through this endpoint, gated by the same rule as viewing the report resource itself."""
+
+    def setUp(self):
+        self.doctor_user = User.objects.create_user(
+            username="dl_doc", email="dl_doc@example.com", password="x", role=User.Role.DOCTOR
+        )
+        self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
+        self.other_doctor_user = User.objects.create_user(
+            username="dl_doc2", email="dl_doc2@example.com", password="x", role=User.Role.DOCTOR
+        )
+        self.patient_user = User.objects.create_user(
+            username="dl_pat", email="dl_pat@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.patient = Patient.objects.get(user=self.patient_user)
+        self.other_patient_user = User.objects.create_user(
+            username="dl_pat2", email="dl_pat2@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.lab_staff = User.objects.create_user(
+            username="dl_lab", email="dl_lab@example.com", password="x", role=User.Role.LAB_STAFF
+        )
+        self.admin = User.objects.create_user(
+            username="dl_admin", email="dl_admin@example.com", password="x", role=User.Role.ADMIN
+        )
+
+        self.lab_test = LabTest.objects.create(patient=self.patient, requested_by=self.doctor, test_name="Thyroid Panel")
+
+        from .models import LabReport
+
+        pdf = SimpleUploadedFile("report.pdf", b"%PDF-1.4 fake pdf content", content_type="application/pdf")
+        self.report = LabReport.objects.create(lab_test=self.lab_test, report_file=pdf, uploaded_by=self.lab_staff)
+
+    def test_serializer_exposes_download_endpoint_not_raw_media_path(self):
+        self.client.force_authenticate(self.patient_user)
+        resp = self.client.get("/api/lab/reports/")
+        report_file_url = resp.data["results"][0]["report_file"]
+        self.assertEqual(report_file_url, f"/api/lab/reports/{self.report.id}/download/")
+        self.assertNotIn("/media/", report_file_url)
+
+    def test_unauthenticated_request_is_rejected(self):
+        resp = self.client.get(f"/api/lab/reports/{self.report.id}/download/")
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_owning_patient_can_download(self):
+        self.client.force_authenticate(self.patient_user)
+        resp = self.client.get(f"/api/lab/reports/{self.report.id}/download/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(b"".join(resp.streaming_content), b"%PDF-1.4 fake pdf content")
+
+    def test_another_patient_cannot_download(self):
+        self.client.force_authenticate(self.other_patient_user)
+        resp = self.client.get(f"/api/lab/reports/{self.report.id}/download/")
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_requesting_doctor_can_download_but_another_doctor_cannot(self):
+        self.client.force_authenticate(self.doctor_user)
+        resp = self.client.get(f"/api/lab/reports/{self.report.id}/download/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        self.client.force_authenticate(self.other_doctor_user)
+        resp = self.client.get(f"/api/lab/reports/{self.report.id}/download/")
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_lab_staff_and_admin_can_always_download(self):
+        for user in (self.lab_staff, self.admin):
+            self.client.force_authenticate(user)
+            resp = self.client.get(f"/api/lab/reports/{self.report.id}/download/")
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    def test_report_with_no_file_returns_404(self):
+        from .models import LabReport
+
+        other_test = LabTest.objects.create(patient=self.patient, requested_by=self.doctor, test_name="X-Ray")
+        empty_report = LabReport.objects.create(lab_test=other_test, uploaded_by=self.lab_staff)
+        self.client.force_authenticate(self.patient_user)
+        resp = self.client.get(f"/api/lab/reports/{empty_report.id}/download/")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+
 class MaxFileSizeValidatorTests(APITestCase):
     def test_rejects_file_over_the_limit(self):
         from django.core.exceptions import ValidationError

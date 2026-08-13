@@ -1,3 +1,4 @@
+from django.conf import settings as django_settings
 from django.core.cache import cache
 from django.test import override_settings
 from rest_framework import status
@@ -80,6 +81,38 @@ class AuditLogMiddlewareTests(APITestCase):
         self.assertIsNotNone(entry)
         self.assertEqual(entry.changes.get("password"), "***REDACTED***")
         self.assertEqual(entry.changes.get("username"), "newstaffmember")
+
+    @override_settings(**TEST_OVERRIDES, REST_FRAMEWORK={**django_settings.REST_FRAMEWORK, "NUM_PROXIES": 1})
+    def test_recorded_ip_trusts_only_the_hop_the_proxy_actually_appended(self):
+        """With NUM_PROXIES=1 (production, one nginx hop), only the *last* X-Forwarded-For entry
+        was actually appended by infrastructure we control — nginx's $proxy_add_x_forwarded_for
+        appends, it doesn't replace. Anything earlier in the header is client-supplied and must
+        never be trusted, or a client could put an arbitrary fake address into the audit trail
+        (and their own login-history page) just by sending their own X-Forwarded-For."""
+        self.client.force_authenticate(self.patient)
+        self.client.post(
+            "/api/departments/",
+            {"name": "Should Fail But Still Logged"},
+            HTTP_X_FORWARDED_FOR="6.6.6.6, 9.9.9.9",
+        )
+        entry = AuditLog.objects.filter(method="POST", path="/api/departments/").first()
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.ip_address, "9.9.9.9")
+        self.assertNotEqual(entry.ip_address, "6.6.6.6")
+
+    @override_settings(**TEST_OVERRIDES, REST_FRAMEWORK={**django_settings.REST_FRAMEWORK, "NUM_PROXIES": 0})
+    def test_x_forwarded_for_is_ignored_entirely_when_num_proxies_is_zero(self):
+        """NUM_PROXIES=0 (local dev, nothing in front of Django) means REMOTE_ADDR is the only
+        thing trusted — a client-supplied X-Forwarded-For must have zero effect."""
+        self.client.force_authenticate(self.patient)
+        self.client.post(
+            "/api/departments/",
+            {"name": "Should Fail But Still Logged"},
+            HTTP_X_FORWARDED_FOR="6.6.6.6",
+        )
+        entry = AuditLog.objects.filter(method="POST", path="/api/departments/").first()
+        self.assertIsNotNone(entry)
+        self.assertNotEqual(entry.ip_address, "6.6.6.6")
 
 
 @override_settings(**TEST_OVERRIDES)

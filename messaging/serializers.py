@@ -1,3 +1,4 @@
+from django.urls import reverse
 from rest_framework import serializers
 
 from accounts.serializers import UserSerializer
@@ -20,3 +21,10 @@ class MessageSerializer(serializers.ModelSerializer):
         if not attrs.get("body") and not self.initial_data.get("attachment"):
             raise serializers.ValidationError("Message must have a body or an attachment.")
         return attrs
+
+    def to_representation(self, instance):
+        # Same reasoning as laboratory.serializers.LabReportSerializer: point at the authenticated
+        # download endpoint, not the raw (unauthenticated, nginx-served) MEDIA_URL path.
+        data = super().to_representation(instance)
+        data["attachment"] = reverse("message-attachment-download", kwargs={"pk": instance.pk}) if instance.attachment else None
+        return data

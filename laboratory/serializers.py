@@ -1,3 +1,4 @@
+from django.urls import reverse
 from rest_framework import serializers
 
 from doctors.serializers import DoctorSerializer
@@ -20,6 +21,17 @@ class LabReportSerializer(serializers.ModelSerializer):
             "reviewed_at",
         ]
         read_only_fields = ["id", "uploaded_by", "uploaded_at"]
+
+    def to_representation(self, instance):
+        # `report_file` is writable (the upload field, handled above by the model field as usual) but
+        # read back as the authenticated download endpoint's path, not the raw MEDIA_URL — nginx/Django
+        # serve /media/ with no permission check at all, so the raw path would make the file reachable
+        # by anyone who ever sees this response, forever. A relative path (not build_absolute_uri) to
+        # match every other URL in this API, which all resolve correctly under both the Vite dev proxy
+        # and the production nginx proxy without a build-time base-URL switch — see docs/frontend.md.
+        data = super().to_representation(instance)
+        data["report_file"] = reverse("lab-report-download", kwargs={"pk": instance.pk}) if instance.report_file else None
+        return data
 
 
 class LabTestSerializer(serializers.ModelSerializer):

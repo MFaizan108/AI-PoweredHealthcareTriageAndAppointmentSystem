@@ -96,7 +96,10 @@ ROOT_URLCONF = "ai_healthcare_triage_appointment_system.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        # Only override is templates/admin/login.html (adds the 2FA code field to the admin login
+        # form — see accounts/admin_forms.py) — everything else still resolves from each app's own
+        # templates/ via APP_DIRS below.
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -246,6 +249,11 @@ REST_FRAMEWORK = {
         "anon": "30/minute",
         "user": "120/minute",
         "login": "5/minute",
+        # Every call here triggers a real LLM request (local Ollama compute, or a paid/rate-limited
+        # Groq API call) — the generic 120/minute user rate is fine for ordinary CRUD but would let
+        # a single account burn API cost or pin an Ollama worker just by hammering triage/assistant
+        # endpoints. Applies per-user, not globally, so it can't be used to deny service to others.
+        "ai": "20/hour",
     },
     # Governs how DRF's throttles derive the client IP from X-Forwarded-For (rest_framework.throttling
     # .SimpleRateThrottle.get_ident). Left unset (None), DRF trusts X-Forwarded-For unconditionally —

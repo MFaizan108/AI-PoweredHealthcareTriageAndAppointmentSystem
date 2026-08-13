@@ -76,3 +76,73 @@ class MessagingPermissionTests(APITestCase):
             format="multipart",
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
+
+
+class MessageAttachmentDownloadTests(APITestCase):
+    """attachment must never be reachable via a raw, unauthenticated media URL — same reasoning as
+    laboratory.tests.LabReportDownloadTests."""
+
+    def setUp(self):
+        dept = Department.objects.create(name="Attachment Dept")
+        self.doctor_user = User.objects.create_user(
+            username="atc_doc", email="atc_doc@example.com", password="x", role=User.Role.DOCTOR
+        )
+        self.doctor = Doctor.objects.filter(user=self.doctor_user).first()
+        self.doctor.department = dept
+        self.doctor.save()
+
+        self.patient_user = User.objects.create_user(
+            username="atc_pat", email="atc_pat@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.patient = Patient.objects.get(user=self.patient_user)
+        self.outsider = User.objects.create_user(
+            username="atc_outsider", email="atc_outsider@example.com", password="x", role=User.Role.PATIENT
+        )
+        self.admin = User.objects.create_user(
+            username="atc_admin", email="atc_admin@example.com", password="x", role=User.Role.ADMIN
+        )
+
+        self.appointment = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=datetime.date.today(),
+            slot_start_time=datetime.time(10, 0),
+            slot_end_time=datetime.time(10, 20),
+        )
+
+        self.client.force_authenticate(self.patient_user)
+        good_file = SimpleUploadedFile("scan.jpg", b"fake jpeg bytes", content_type="image/jpeg")
+        resp = self.client.post(
+            "/api/messages/",
+            {"appointment": self.appointment.id, "body": "See attached", "attachment": good_file},
+            format="multipart",
+        )
+        self.message_id = resp.data["id"]
+        self.client.force_authenticate(None)
+
+    def test_serializer_exposes_download_endpoint_not_raw_media_path(self):
+        self.client.force_authenticate(self.patient_user)
+        resp = self.client.get(f"/api/messages/{self.message_id}/")
+        self.assertEqual(resp.data["attachment"], f"/api/messages/{self.message_id}/attachment/")
+        self.assertNotIn("/media/", resp.data["attachment"])
+
+    def test_unauthenticated_request_is_rejected(self):
+        resp = self.client.get(f"/api/messages/{self.message_id}/attachment/")
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_sender_and_recipient_can_download(self):
+        for user in (self.patient_user, self.doctor_user):
+            self.client.force_authenticate(user)
+            resp = self.client.get(f"/api/messages/{self.message_id}/attachment/")
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            self.assertEqual(b"".join(resp.streaming_content), b"fake jpeg bytes")
+
+    def test_outsider_cannot_download(self):
+        self.client.force_authenticate(self.outsider)
+        resp = self.client.get(f"/api/messages/{self.message_id}/attachment/")
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_download(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.get(f"/api/messages/{self.message_id}/attachment/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
