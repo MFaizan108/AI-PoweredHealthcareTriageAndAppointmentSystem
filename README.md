@@ -1,5 +1,11 @@
 # AI-Powered Healthcare Triage & Appointment System
 
+[![CI](https://github.com/MFaizan108/AI-PoweredHealthcareTriageAndAppointmentSystem/actions/workflows/ci.yml/badge.svg)](https://github.com/MFaizan108/AI-PoweredHealthcareTriageAndAppointmentSystem/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](requirements.txt)
+[![Django 6.1](https://img.shields.io/badge/django-6.1-0C4B33.svg)](requirements.txt)
+[![Tests](https://img.shields.io/badge/tests-218%20passing-brightgreen.svg)](docs/test_results.md)
+
 A hospital operations platform — patient-facing triage, appointment booking, and role-based
 dashboards for every part of a clinic's workflow — with a rule-based AI triage engine at its
 core and an LLM used only to make that engine's decisions easier to read, never to make them.
@@ -53,22 +59,18 @@ tool, not a medical diagnosis.**
 
 ## Architecture
 
-```
-                    Internet
-                       │
-                       ▼
-                    Nginx            (HTTPS termination, serves the React build, reverse-proxies
-                       │              /api|/admin|/health to Django — production only)
-        ┌──────────────┴──────────────┐
-        ▼                             ▼
-  React SPA (static)           Django / Gunicorn   (REST API, JWT auth, RBAC, throttling, audit middleware)
-                                       │
-                       ┌───────────────┼──────────────┐
-                       ▼               ▼              ▼
-                  PostgreSQL         Redis          Celery Worker
-                  (isolated          (cache +            │
-                   container)        Celery broker)      ▼
-                                                     Celery Beat  (hourly appointment-reminder schedule)
+```mermaid
+flowchart TD
+    Internet((Internet)) --> Nginx["Nginx\nHTTPS termination, reverse proxy\n(production only)"]
+    Nginx --> SPA["React SPA (static build)"]
+    Nginx --> Django["Django / Gunicorn\nREST API · JWT auth · RBAC\nthrottling · audit middleware"]
+    Django --> PG[("PostgreSQL\nisolated container")]
+    Django --> Redis[("Redis\ncache + Celery broker")]
+    Django -->|computes inline, authoritative| RuleEngine["Rule Engine\nurgency + department"]
+    Django -->|enqueues, non-blocking| Worker["Celery Worker\nLLM calls · email · reminders"]
+    Worker --> Beat["Celery Beat\nhourly reminder schedule"]
+    Worker -.-> Redis
+    Worker -.->|explanatory only, never overrides| LLM(["Ollama / Groq"])
 ```
 
 Full write-up, including how local dev and the containerized production stack coexist in one
@@ -194,6 +196,21 @@ Full model reference: [project_blueprint/17_database_models.md](project_blueprin
 - Auth, request/response examples, error shapes, and pagination/filtering conventions:
   [docs/api.md](docs/api.md), [docs/authentication.md](docs/authentication.md).
 
+## Live Demo
+
+No hosted deployment URL — this project was built and reviewed through Phase 17 (a real security
+audit, not a token pass), but was never pointed at paid cloud infrastructure, so there's no public
+domain/TLS cert to link to honestly. What stands in for it:
+
+- **[docs/demo_script.md](docs/demo_script.md)** — a real ~40s screen recording plus 10
+  screenshots, captured by driving the actual running app (seeded data, real rule engine, a real
+  LLM call) end to end across all five roles — not mockups.
+- **Run it yourself in a few minutes**: `docker compose up` (see [Docker Setup](#docker-setup))
+  brings up the full stack (Postgres, Redis, Django, Celery) locally; `python manage.py seed_demo`
+  gives you working accounts for every role immediately. The production compose profile
+  (`--profile production`, nginx + Let's Encrypt) is exactly what a real deployment would run —
+  see [docs/deployment.md](docs/deployment.md) — it just isn't currently pointed at a domain.
+
 ## Installation
 
 Requires Python 3.13+, Node 22+, and either Docker or a local PostgreSQL/Redis (SQLite works for
@@ -264,10 +281,11 @@ start before the real one is issued) — full walkthrough in
 python manage.py test
 ```
 
-198 tests, all passing — authentication, appointments (slots/double-booking/waitlist/queue),
+218 tests, all passing — authentication, appointments (slots/double-booking/waitlist/queue),
 medical records/prescriptions/lab/billing/messaging, AI (rule engine matrix, LLM reliability
 metrics, RAG authorization matrix), RBAC/object-level permissions/rate limiting/audit logging,
-and the demo-seed command itself.
+and the demo-seed command itself. Per-app breakdown and what each phase added:
+[docs/test_results.md](docs/test_results.md).
 
 Frontend type-check: `cd frontend && node ./node_modules/typescript/bin/tsc -b`.
 
@@ -295,8 +313,17 @@ Idempotent, safe to re-run. Full account list and what gets seeded:
 
 ## Screenshots
 
-Not yet captured — planned for the demo-video pass (see the roadmap's Phase 18). This section
-will be filled in then rather than with placeholders now.
+Pulled from an actual driven run against the real app (seeded demo data, real rule engine, real
+LLM call) — not mockups. Full 10-scene shot list, narration draft, and a short screen recording:
+[docs/demo_script.md](docs/demo_script.md).
+
+| AI Triage (hero feature) | Doctor Dashboard | Admin Analytics |
+|---|---|---|
+| ![AI triage result: Emergency urgency, red-flag reasoning, AI explanation, emergency guidance](docs/screenshots/02-ai-triage.png) | ![Doctor's today queue](docs/screenshots/04-doctor-dashboard.png) | ![Admin analytics: patient/appointment/AI urgency aggregates](docs/screenshots/09-admin-analytics.png) |
+
+| Lab Reports | Billing | Audit Log |
+|---|---|---|
+| ![Lab report, completed status](docs/screenshots/06-lab-reports.png) | ![Invoices with consultation + lab charges, paid/partial status](docs/screenshots/07-billing.png) | ![Audit trail: who, what, when, from where, status code](docs/screenshots/10-audit-logs.png) |
 
 ## Project Structure
 
@@ -314,6 +341,7 @@ main/
 ├── project_blueprint/                         # original design docs + phase-by-phase roadmap
 ├── docker-compose.yml / docker-compose.override.yml / Dockerfile
 ├── requirements.txt / .env.example
+├── LICENSE
 └── manage.py
 ```
 
@@ -334,8 +362,13 @@ main/
 
 ## Future Enhancements
 
-Tracked in [project_blueprint/21_roadmap_phase5_to_20.md](project_blueprint/21_roadmap_phase5_to_20.md):
-a final security/architecture review pass, a recorded demo walkthrough, and the GitHub portfolio
-release polish (screenshots, architecture diagrams, deployment URL). CI/CD hardening and
-automated backup/restore verification are already done — see [docs/cicd.md](docs/cicd.md) and
-[docs/backups.md](docs/backups.md).
+- A real hosted deployment (currently self-hosted-only, see [Live Demo](#live-demo)) — the
+  `--profile production` compose stack is deployment-ready, it's just never been pointed at a
+  paid domain/server.
+- An ML classifier for triage (Layer 2) once a validated clinical dataset exists — see
+  [Limitations](#limitations) for why that's deliberately not stubbed in the meantime.
+- A vector-DB-backed retriever for the AI assistant if the FAQ/patient-data corpus ever grows
+  past what a from-scratch keyword scorer can handle well.
+
+Full phase-by-phase history, including what was found and fixed at each step:
+[project_blueprint/21_roadmap_phase5_to_20.md](project_blueprint/21_roadmap_phase5_to_20.md).

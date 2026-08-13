@@ -2,6 +2,20 @@
 
 ## Request flow (production)
 
+```mermaid
+flowchart TD
+    Internet((Internet)) --> Nginx["Nginx\nHTTPS termination, reverse proxy\n(production only)"]
+    Nginx --> SPA["React SPA (static build)"]
+    Nginx --> Django["Django / Gunicorn\nREST API · JWT auth · RBAC\nthrottling · audit middleware"]
+    Django --> PG[("PostgreSQL\nisolated container")]
+    Django --> Redis[("Redis\ncache + Celery broker")]
+    Django --> Worker["Celery Worker"]
+    Worker --> Beat["Celery Beat\nhourly reminder schedule"]
+    Worker -.-> Redis
+```
+
+The same flow, with the full label detail:
+
 ```
                     Internet
                        │

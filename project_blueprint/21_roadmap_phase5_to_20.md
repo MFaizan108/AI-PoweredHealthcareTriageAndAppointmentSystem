@@ -589,6 +589,21 @@ Backups              ✅
 
 ## Phase 18 — Final Demo & Presentation 🎥
 
+**Status: ✅ Implemented (2026-08-13)** — all 10 scenes below actually driven against the real
+app (seeded demo data, real rule engine, one real LLM call — not mocked) via a headless-browser
+script: a ~40s Playwright screen recording (`docs/demo-recording.webm`) plus one still per scene
+(`docs/screenshots/`), both linked from the README's new Screenshots section. A rendered,
+voiced-over video is presentation work outside what this environment can produce, so
+`docs/demo_script.md` carries the shot list, exact steps, and a narration draft instead of a
+placeholder — everything needed for that recording pass to be pure narration on top of material
+already proven to work. Two real things surfaced during capture, not smoothed over: the login
+rate limiter (Phase 8) correctly throttled logging into 6 accounts within a minute, fixed by
+reordering scenes to reuse a session (down to 4 logins); and this machine's Docker Desktop
+crashed mid-capture (a recurring instability also seen in Phase 17) — diagnosed and worked around
+by running the whole capture against SQLite instead of fighting Docker, rather than blocking on
+infrastructure outside this repo's control. Zero console/network errors across the final runs.
+See [docs/demo_script.md](../docs/demo_script.md).
+
 Project ka professional demo video:
 
 | Scene | Content |
@@ -607,6 +622,27 @@ Project ka professional demo video:
 ---
 
 ## Phase 19 — GitHub Portfolio Release 🚀
+
+**Status: ✅ Implemented (2026-08-13)** — added the pieces a public repo was actually missing: a
+root `LICENSE` (MIT — the repo had none), CI/license/Python/Django/test-count badges on the
+README (all pointing at real, verifiable things — the actual GitHub Actions workflow, the actual
+`requirements.txt` pin, the actual local test run), a GitHub-native Mermaid architecture diagram
+in both the README and `docs/architecture.md` (kept alongside the existing detailed ASCII one,
+not replacing it), and `docs/test_results.md` with a real per-app test breakdown (218 tests,
+verified by re-running the full suite locally — SQLite + eager Celery, matching how CI runs —
+rather than trusting the number carried over from the Phase 17 report). Screenshots, demo
+video/script, and API docs already existed from Phases 5/14/18. **Deliberately did not fabricate
+a Deployment URL**: this project has a deployment-ready `--profile production` compose stack
+(Phase 9) but was never pointed at paid cloud infrastructure, so the README's new "Live Demo"
+section says exactly that and points instead at the real screen recording plus a
+`docker compose up` quick-start, rather than inventing a link. Per the project's established repo
+convention, tests live per-Django-app (`accounts/tests.py`, etc.) rather than in one top-level
+`tests/` folder — the illustrative tree below is aspirational, not a required restructuring, and
+moving 218 tests across app boundaries for tree-shape alone would trade working `TestCase`
+isolation for no real benefit. Left the repo's GitHub-side metadata (description, topics, social
+preview image) for the user to set from the web UI / `gh repo edit`, since that mutates shared,
+publicly-visible repository settings this environment has no authenticated access to. Verified:
+218/218 tests still passing after all doc/config changes; `ruff`/`black` clean.
 
 Repository ko professional banao:
 ```
