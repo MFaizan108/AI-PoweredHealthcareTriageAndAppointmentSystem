@@ -1,6 +1,7 @@
 import os
 
 from django.http import FileResponse, Http404
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -88,6 +89,7 @@ class LabReportViewSet(viewsets.ModelViewSet):
 
 @extend_schema(
     tags=["lab"],
+    responses={200: OpenApiTypes.BINARY},
     description=(
         "Streams the report file itself, gated by the same access rule as the report resource "
         "(CanAccessLabReport) — the file is never reachable via a public/unauthenticated media URL."

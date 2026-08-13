@@ -144,12 +144,18 @@ jobs:
         run: python -m pip_audit -r requirements.txt
       - name: Django deployment security checklist
         env:
-          # Deliberately not the production secret — this job never boots the app against real
-          # data, it just runs `check --deploy`'s static analysis of settings.py. A throwaway key
-          # does trip the "SECRET_KEY looks auto-generated" warning below, which is expected and
-          # non-fatal (check --deploy only exits non-zero on an actual ERROR-level finding).
+          # Deliberately not real secrets — this job never boots the app against real data or
+          # sends real mail, it just runs `check --deploy`'s static analysis of settings.py.
+          # DJANGO_SECRET_KEY does trip the "looks auto-generated" warning below, which is
+          # expected and non-fatal (check --deploy only exits non-zero on an ERROR-level
+          # finding). EMAIL_HOST_USER/PASSWORD just need to be *set* — settings.py's MAILERS
+          # falls back to the console backend when they're blank, which is itself an ERROR-level
+          # finding (mail.E001, "a development-only email backend") once DEBUG=False; nothing
+          # here ever actually connects to smtp.gmail.com.
           DJANGO_SECRET_KEY: ci-deploy-check-throwaway-key-not-for-production-use-only
           DJANGO_DEBUG: "False"
+          EMAIL_HOST_USER: ci-deploy-check@example.com
+          EMAIL_HOST_PASSWORD: ci-deploy-check-throwaway-not-a-real-credential
         run: python manage.py check --deploy
 
   docker-build:

@@ -1,6 +1,7 @@
 import os
 
 from django.http import FileResponse, Http404
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -58,6 +59,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
 @extend_schema(
     tags=["messages"],
+    responses={200: OpenApiTypes.BINARY},
     description="Streams the attachment file, gated by the same rule as the message itself (sender/recipient/admin).",
 )
 class MessageAttachmentDownloadView(APIView):
